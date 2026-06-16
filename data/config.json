@@ -1,0 +1,7 @@
+{
+  "googlePlacesApiKey": "",
+  "defaultCity": "Cuiabá",
+  "defaultState": "MT",
+  "maxResults": 60,
+  "topProspects": 20
+}

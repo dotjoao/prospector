@@ -1,0 +1,7 @@
+﻿node_modules/
+dist/
+.env
+*.log
+screenshots/*.png
+exports/*.xlsx
+.DS_Store
