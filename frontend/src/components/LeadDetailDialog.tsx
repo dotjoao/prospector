@@ -6,7 +6,6 @@ import {
   MessageSquare,
   Star,
   Globe,
-  Phone,
   MapPin,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -14,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
+import { ContactPhone } from '@/components/ContactPhone';
 import {
   Dialog,
   DialogContent,
@@ -32,7 +32,6 @@ import { api, LEAD_STATUSES } from '@/services/api';
 import { Lead, LeadStatus } from '@/types';
 import {
   cn,
-  formatPhone,
   getPrioridadeColor,
   getStatusColor,
 } from '@/lib/utils';
@@ -122,8 +121,7 @@ export function LeadDetailDialog({ lead, open, onOpenChange, onUpdate }: LeadDet
               <span>{lead.cidade}, {lead.estado}</span>
             </div>
             <div className="flex items-center gap-2">
-              <Phone className="h-4 w-4 text-muted-foreground" />
-              <span>{formatPhone(lead.telefone)}</span>
+              <ContactPhone phone={lead.telefone} size="md" />
             </div>
             <div className="flex items-center gap-2">
               <Globe className="h-4 w-4 text-muted-foreground" />

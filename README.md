@@ -35,6 +35,8 @@ npm run install:all
 }
 ```
 
+No [Google Cloud Console](https://console.cloud.google.com/), ative a **Places API (New)** no seu projeto (não a API legada "Places API").
+
 3. Instale os browsers do Playwright (para screenshots):
 
 ```bash
@@ -48,7 +50,7 @@ npm run dev
 ```
 
 - Frontend: http://localhost:5173
-- Backend: http://localhost:3001
+- Backend: http://localhost:3333
 
 ## Funcionalidades
 

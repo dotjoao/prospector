@@ -16,7 +16,33 @@ export function formatPhone(phone: string): string {
   if (digits.length === 11) {
     return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
   }
+  if (digits.length === 10) {
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+  }
   return phone;
+}
+
+export function getPhoneDigits(phone: string): string {
+  return phone.replace(/\D/g, '');
+}
+
+export function getWhatsAppLink(phone: string): string | null {
+  let digits = getPhoneDigits(phone);
+  if (!digits) return null;
+
+  if (digits.startsWith('0')) {
+    digits = digits.slice(1);
+  }
+
+  if (digits.startsWith('55') && digits.length >= 12) {
+    return `https://wa.me/${digits}`;
+  }
+
+  if (digits.length === 10 || digits.length === 11) {
+    return `https://wa.me/55${digits}`;
+  }
+
+  return `https://wa.me/${digits}`;
 }
 
 export function getPrioridadeColor(prioridade: string): string {

@@ -1,12 +1,13 @@
 ﻿import { useState } from 'react';
-import { Eye, Star, Globe, Phone } from 'lucide-react';
+import { Eye, Star, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LeadDetailDialog } from '@/components/LeadDetailDialog';
+import { ContactPhone } from '@/components/ContactPhone';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { Lead } from '@/types';
-import { cn, formatPhone, getPrioridadeColor, getStatusColor } from '@/lib/utils';
+import { cn, getPrioridadeColor, getStatusColor } from '@/lib/utils';
 
 interface LeadTableProps {
   leads: Lead[];
@@ -77,11 +78,10 @@ export function LeadTable({ leads, loading, title = 'Leads', highlightTop, onRef
                     <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
                       <span>{lead.categoria}</span>
                       <span>{lead.cidade}</span>
-                      {lead.telefone && (
-                        <span className="flex items-center gap-1">
-                          <Phone className="h-3 w-3" />
-                          {formatPhone(lead.telefone)}
-                        </span>
+                      {lead.telefone ? (
+                        <ContactPhone phone={lead.telefone} />
+                      ) : (
+                        <span className="text-muted-foreground">Sem telefone</span>
                       )}
                       <span className="flex items-center gap-1">
                         <Globe className="h-3 w-3" />

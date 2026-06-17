@@ -26,6 +26,15 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 app.listen(API_PORT, () => {
   console.log(`\n🎯 LeadHunter API rodando em http://localhost:${API_PORT}`);
   console.log(`📁 Screenshots: ${path.resolve(SCREENSHOTS_DIR)}\n`);
+}).on('error', (err: NodeJS.ErrnoException) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`\n❌ Porta ${API_PORT} já está em uso.`);
+    console.error('   Feche o processo anterior ou execute:');
+    console.error(`   npx kill-port ${API_PORT}\n`);
+  } else {
+    console.error('\n❌ Erro ao iniciar servidor:', err.message);
+  }
+  process.exit(1);
 });
 
 export default app;
