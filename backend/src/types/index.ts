@@ -39,6 +39,7 @@ export interface Lead {
   ultimoContato?: string;
   proximoFollowUp?: string;
   observacoes?: string;
+  mensagemProspeccao?: string;
   websiteAnalysis?: WebsiteAnalysis;
 }
 
@@ -79,6 +80,7 @@ export interface UpdateLeadPayload {
   ultimoContato?: string;
   proximoFollowUp?: string;
   observacoes?: string;
+  mensagemProspeccao?: string;
 }
 
 export interface GooglePlaceResult {

@@ -39,6 +39,7 @@ export interface Lead {
   ultimoContato?: string;
   proximoFollowUp?: string;
   observacoes?: string;
+  mensagemProspeccao?: string;
   websiteAnalysis?: WebsiteAnalysis;
 }
 

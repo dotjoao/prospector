@@ -48,10 +48,11 @@ export function LeadDetailDialog({ lead, open, onOpenChange, onUpdate }: LeadDet
   const [ultimoContato, setUltimoContato] = useState('');
   const [proximoFollowUp, setProximoFollowUp] = useState('');
   const [observacoes, setObservacoes] = useState('');
-  const [message, setMessage] = useState('');
+  const [mensagem, setMensagem] = useState('');
   const [copied, setCopied] = useState(false);
   const [saving, setSaving] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
   useEffect(() => {
     if (lead) {
@@ -59,21 +60,26 @@ export function LeadDetailDialog({ lead, open, onOpenChange, onUpdate }: LeadDet
       setUltimoContato(lead.ultimoContato?.split('T')[0] || '');
       setProximoFollowUp(lead.proximoFollowUp?.split('T')[0] || '');
       setObservacoes(lead.observacoes || '');
-      setMessage('');
+      setMensagem(lead.mensagemProspeccao || '');
+      setSaveSuccess(false);
     }
   }, [lead]);
 
   async function handleSave() {
     if (!lead) return;
     setSaving(true);
+    setSaveSuccess(false);
     try {
       await api.updateLead(lead.id, {
         status,
         ultimoContato: ultimoContato || undefined,
         proximoFollowUp: proximoFollowUp || undefined,
         observacoes,
+        mensagemProspeccao: mensagem,
       });
+      setSaveSuccess(true);
       onUpdate();
+      setTimeout(() => setSaveSuccess(false), 3000);
     } finally {
       setSaving(false);
     }
@@ -84,14 +90,15 @@ export function LeadDetailDialog({ lead, open, onOpenChange, onUpdate }: LeadDet
     setLoadingMessage(true);
     try {
       const result = await api.generateMessage(lead.id);
-      setMessage(result.message);
+      setMensagem(result.message);
     } finally {
       setLoadingMessage(false);
     }
   }
 
   async function handleCopy() {
-    await navigator.clipboard.writeText(message);
+    if (!mensagem) return;
+    await navigator.clipboard.writeText(mensagem);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
@@ -193,9 +200,6 @@ export function LeadDetailDialog({ lead, open, onOpenChange, onUpdate }: LeadDet
                 rows={3}
               />
             </div>
-            <Button onClick={handleSave} disabled={saving} className="w-full">
-              {saving ? 'Salvando...' : 'Salvar Alterações'}
-            </Button>
           </div>
 
           <div className="border-t pt-4 space-y-3">
@@ -204,24 +208,35 @@ export function LeadDetailDialog({ lead, open, onOpenChange, onUpdate }: LeadDet
                 <MessageSquare className="h-4 w-4" />
                 Mensagem de Prospecção
               </h4>
-              <Button variant="outline" size="sm" onClick={handleGenerateMessage} disabled={loadingMessage}>
-                {loadingMessage ? 'Gerando...' : 'Gerar Mensagem'}
-              </Button>
-            </div>
-            {message && (
-              <div className="relative">
-                <Textarea value={message} readOnly rows={8} className="pr-12" />
+              <div className="flex gap-2">
                 <Button
-                  size="icon"
-                  variant="ghost"
-                  className="absolute top-2 right-2"
+                  variant="outline"
+                  size="sm"
                   onClick={handleCopy}
+                  disabled={!mensagem.trim()}
                 >
-                  {copied ? <Check className="h-4 w-4 text-green-400" /> : <Copy className="h-4 w-4" />}
+                  {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                  Copiar
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleGenerateMessage} disabled={loadingMessage}>
+                  {loadingMessage ? 'Gerando...' : 'Gerar Mensagem'}
                 </Button>
               </div>
-            )}
+            </div>
+            <Textarea
+              value={mensagem}
+              onChange={(e) => setMensagem(e.target.value)}
+              placeholder="Clique em Gerar Mensagem ou escreva sua mensagem personalizada..."
+              rows={8}
+            />
+            <p className="text-xs text-muted-foreground">
+              Edite livremente. Ao salvar, a mensagem será gravada no lead e exportada na planilha.
+            </p>
           </div>
+
+          <Button onClick={handleSave} disabled={saving} className="w-full">
+            {saving ? 'Salvando...' : saveSuccess ? 'Salvo com sucesso!' : 'Salvar Alterações'}
+          </Button>
 
           <div className="flex gap-2">
             <Button variant="outline" className="flex-1" asChild>
