@@ -8,6 +8,7 @@ const DEFAULT_CONFIG: AppConfig = {
   defaultState: 'MT',
   maxResults: 60,
   topProspects: 20,
+  enableScreenshots: false,
 };
 
 export class ConfigService {

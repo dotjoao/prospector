@@ -1,7 +1,6 @@
 ﻿import { useCallback, useEffect, useState } from 'react';
 import {
   Target,
-  Download,
   RefreshCw,
   AlertCircle,
   CheckCircle2,
@@ -10,6 +9,7 @@ import { Dashboard } from '@/components/Dashboard';
 import { SearchForm } from '@/components/SearchForm';
 import { LeadFiltersPanel } from '@/components/LeadFiltersPanel';
 import { LeadTable } from '@/components/LeadTable';
+import { ExportPanel } from '@/components/ExportPanel';
 import { Button } from '@/components/ui/button';
 import { api } from '@/services/api';
 import { Lead, LeadFilters, SearchParams } from '@/types';
@@ -20,7 +20,6 @@ function App() {
   const [filters, setFilters] = useState<LeadFilters>({});
   const [loading, setLoading] = useState(false);
   const [searching, setSearching] = useState(false);
-  const [exporting, setExporting] = useState(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [defaultCity, setDefaultCity] = useState('Cuiabá');
   const [defaultState, setDefaultState] = useState('MT');
@@ -66,24 +65,6 @@ function App() {
     }
   }
 
-  async function handleExport() {
-    setExporting(true);
-    try {
-      const result = await api.exportExcel();
-      const link = document.createElement('a');
-      link.href = result.downloadUrl;
-      link.download = 'leads.xlsx';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      showNotification('success', `${result.count} leads exportados para Excel`);
-    } catch (err) {
-      showNotification('error', (err as Error).message);
-    } finally {
-      setExporting(false);
-    }
-  }
-
   function handleRefresh() {
     loadLeads();
     setDashboardKey((k) => k + 1);
@@ -102,16 +83,10 @@ function App() {
               <p className="text-xs text-muted-foreground">Prospecção Inteligente</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={handleRefresh}>
-              <RefreshCw className="h-4 w-4" />
-              Atualizar
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleExport} disabled={exporting || leads.length === 0}>
-              <Download className="h-4 w-4" />
-              {exporting ? 'Exportando...' : 'Exportar Excel'}
-            </Button>
-          </div>
+          <Button variant="outline" size="sm" onClick={handleRefresh}>
+            <RefreshCw className="h-4 w-4" />
+            Atualizar
+          </Button>
         </div>
       </header>
 
@@ -161,6 +136,8 @@ function App() {
             onRefresh={handleRefresh}
           />
         )}
+
+        <ExportPanel onNotify={showNotification} refreshKey={dashboardKey} />
 
         <LeadFiltersPanel filters={filters} onChange={setFilters} />
 

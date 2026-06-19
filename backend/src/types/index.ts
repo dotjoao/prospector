@@ -49,6 +49,7 @@ export interface AppConfig {
   defaultState: string;
   maxResults: number;
   topProspects: number;
+  enableScreenshots: boolean;
 }
 
 export interface SearchParams {

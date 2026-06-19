@@ -54,6 +54,29 @@ export class LeadsService {
     return true;
   }
 
+  async getCategories(): Promise<{ name: string; count: number }[]> {
+    const leads = await this.getAllLeads();
+    const counts = new Map<string, number>();
+
+    for (const lead of leads) {
+      const name = lead.categoria?.trim();
+      if (!name) continue;
+      counts.set(name, (counts.get(name) || 0) + 1);
+    }
+
+    return Array.from(counts.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+  }
+
+  async getLeadsByCategory(categoria: string): Promise<Lead[]> {
+    const leads = await this.getAllLeads();
+    const target = categoria.toLowerCase();
+    return leads
+      .filter((l) => l.categoria?.toLowerCase() === target)
+      .sort((a, b) => b.score - a.score);
+  }
+
   async filterLeads(filters: LeadFilters): Promise<Lead[]> {
     let leads = await this.getAllLeads();
 

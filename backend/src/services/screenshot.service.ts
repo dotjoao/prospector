@@ -1,5 +1,4 @@
-﻿import { chromium } from 'playwright';
-import path from 'path';
+﻿import path from 'path';
 import { SCREENSHOTS_DIR } from '../config/paths.js';
 import { ensureDir, sanitizeFilename } from '../utils/storage.js';
 
@@ -22,6 +21,7 @@ export class ScreenshotService {
 
     let browser;
     try {
+      const { chromium } = await import('playwright');
       browser = await chromium.launch({ headless: true });
       const page = await browser.newPage();
       await page.setViewportSize({ width: 1280, height: 720 });

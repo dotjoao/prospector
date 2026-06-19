@@ -149,29 +149,102 @@ router.get('/leads/:id/message', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/export/excel', async (_req: Request, res: Response) => {
+router.get('/export/categories', async (_req: Request, res: Response) => {
   try {
-    const leads = await leadsService.getAllLeads();
-    const filePath = await exportService.exportToExcel(leads);
+    const categories = await leadsService.getCategories();
+    res.json(categories);
+  } catch (error) {
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
+router.post('/export/excel', async (req: Request, res: Response) => {
+  try {
+    const categoria = req.body.categoria as string | undefined;
+    const leads = categoria
+      ? await leadsService.getLeadsByCategory(categoria)
+      : await leadsService.getAllLeads();
+
+    if (categoria && leads.length === 0) {
+      res.status(404).json({ error: `Nenhum lead encontrado para o tema "${categoria}"` });
+      return;
+    }
+
+    const { fileName } = await exportService.exportToExcel(leads, {
+      categoria,
+      sheetTitle: categoria,
+    });
+
+    const downloadUrl = categoria
+      ? `/api/export/download?categoria=${encodeURIComponent(categoria)}`
+      : '/api/export/download';
+
     res.json({
       success: true,
-      filePath,
+      fileName,
       count: leads.length,
-      downloadUrl: '/api/export/download',
+      categoria: categoria || null,
+      downloadUrl,
     });
   } catch (error) {
     res.status(500).json({ error: (error as Error).message });
   }
 });
 
-router.get('/export/download', async (_req: Request, res: Response) => {
+router.post('/export/excel/all-themes', async (_req: Request, res: Response) => {
   try {
-    const leads = await leadsService.getAllLeads();
-    await exportService.exportToExcel(leads);
-    res.download(
-      (await import('../config/paths.js')).EXPORT_FILE,
-      'leads.xlsx'
+    const categories = await leadsService.getCategories();
+
+    if (categories.length === 0) {
+      res.status(404).json({ error: 'Nenhum tema encontrado para exportar' });
+      return;
+    }
+
+    const exports = await exportService.exportAllByCategory(
+      await Promise.all(
+        categories.map(async (cat) => ({
+          name: cat.name,
+          leads: await leadsService.getLeadsByCategory(cat.name),
+        }))
+      )
     );
+
+    res.json({
+      success: true,
+      totalThemes: exports.length,
+      exports: exports.map((item) => ({
+        ...item,
+        downloadUrl: `/api/export/download?file=${encodeURIComponent(item.fileName)}`,
+      })),
+    });
+  } catch (error) {
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
+router.get('/export/download', async (req: Request, res: Response) => {
+  try {
+    const pathMod = await import('path');
+    const { getExportFileName, EXPORTS_DIR } = await import('../config/paths.js');
+    const categoria = req.query.categoria as string | undefined;
+    const file = req.query.file as string | undefined;
+
+    let fileName: string;
+
+    if (file) {
+      fileName = file.replace(/[^a-zA-Z0-9._-]/g, '');
+    } else if (categoria) {
+      const leads = await leadsService.getLeadsByCategory(categoria);
+      await exportService.exportToExcel(leads, { categoria, sheetTitle: categoria });
+      fileName = getExportFileName(categoria);
+    } else {
+      const leads = await leadsService.getAllLeads();
+      await exportService.exportToExcel(leads);
+      fileName = getExportFileName();
+    }
+
+    const filePath = pathMod.join(EXPORTS_DIR, fileName);
+    res.download(filePath, fileName);
   } catch (error) {
     res.status(500).json({ error: (error as Error).message });
   }

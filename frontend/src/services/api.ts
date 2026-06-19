@@ -60,11 +60,27 @@ export const api = {
   generateMessage: (id: string) =>
     request<{ message: string }>(`/leads/${id}/message`),
 
-  exportExcel: () =>
-    request<{ success: boolean; downloadUrl: string; count: number }>(
-      '/export/excel',
-      { method: 'POST' }
-    ),
+  getExportCategories: () =>
+    request<{ name: string; count: number }[]>('/export/categories'),
+
+  exportExcel: (categoria?: string) =>
+    request<{
+      success: boolean;
+      fileName: string;
+      downloadUrl: string;
+      count: number;
+      categoria: string | null;
+    }>('/export/excel', {
+      method: 'POST',
+      body: JSON.stringify(categoria ? { categoria } : {}),
+    }),
+
+  exportAllThemes: () =>
+    request<{
+      success: boolean;
+      totalThemes: number;
+      exports: { fileName: string; count: number; downloadUrl: string }[];
+    }>('/export/excel/all-themes', { method: 'POST' }),
 
   getConfig: () => request<AppConfig>('/config'),
 

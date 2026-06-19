@@ -3,5 +3,6 @@
   "defaultCity": "Cuiabá",
   "defaultState": "MT",
   "maxResults": 60,
-  "topProspects": 20
+  "topProspects": 20,
+  "enableScreenshots": false
 }

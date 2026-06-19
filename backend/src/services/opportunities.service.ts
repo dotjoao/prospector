@@ -57,7 +57,8 @@ export class OpportunitiesService {
     const website = place.website || '';
     const analysis = await websiteAnalyzerService.analyze(website);
 
-    if (website && analysis.siteStatus === 'Online') {
+    const config = await configService.getConfig();
+    if (config.enableScreenshots && website && analysis.siteStatus === 'Online') {
       const screenshotPath = await screenshotService.capture(place.name, website);
       if (screenshotPath) {
         analysis.screenshotPath = screenshotPath;
