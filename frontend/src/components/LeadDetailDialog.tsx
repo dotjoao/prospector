@@ -44,6 +44,7 @@ interface LeadDetailDialogProps {
 }
 
 export function LeadDetailDialog({ lead, open, onOpenChange, onUpdate }: LeadDetailDialogProps) {
+  const [displayLead, setDisplayLead] = useState<Lead | null>(null);
   const [status, setStatus] = useState<LeadStatus>('Nao Contatado');
   const [ultimoContato, setUltimoContato] = useState('');
   const [proximoFollowUp, setProximoFollowUp] = useState('');
@@ -55,15 +56,34 @@ export function LeadDetailDialog({ lead, open, onOpenChange, onUpdate }: LeadDet
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   useEffect(() => {
-    if (lead) {
-      setStatus(lead.status);
-      setUltimoContato(lead.ultimoContato?.split('T')[0] || '');
-      setProximoFollowUp(lead.proximoFollowUp?.split('T')[0] || '');
-      setObservacoes(lead.observacoes || '');
-      setMensagem(lead.mensagemProspeccao || '');
-      setSaveSuccess(false);
-    }
-  }, [lead]);
+    if (!lead || !open) return;
+
+    let cancelled = false;
+    api.getLead(lead.id)
+      .then((full) => {
+        if (!cancelled) {
+          setDisplayLead(full);
+          setStatus(full.status);
+          setUltimoContato(full.ultimoContato?.split('T')[0] || '');
+          setProximoFollowUp(full.proximoFollowUp?.split('T')[0] || '');
+          setObservacoes(full.observacoes || '');
+          setMensagem(full.mensagemProspeccao || '');
+          setSaveSuccess(false);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setDisplayLead(lead);
+          setStatus(lead.status);
+          setUltimoContato(lead.ultimoContato?.split('T')[0] || '');
+          setProximoFollowUp(lead.proximoFollowUp?.split('T')[0] || '');
+          setObservacoes(lead.observacoes || '');
+          setMensagem(lead.mensagemProspeccao || '');
+        }
+      });
+
+    return () => { cancelled = true; };
+  }, [lead, open]);
 
   async function handleSave() {
     if (!lead) return;
@@ -103,21 +123,21 @@ export function LeadDetailDialog({ lead, open, onOpenChange, onUpdate }: LeadDet
     setTimeout(() => setCopied(false), 2000);
   }
 
-  if (!lead) return null;
+  if (!lead || !displayLead) return null;
 
-  const analysis = lead.websiteAnalysis;
+  const analysis = displayLead.websiteAnalysis;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-xl">{lead.empresa}</DialogTitle>
+          <DialogTitle className="text-xl">{displayLead.empresa}</DialogTitle>
           <DialogDescription className="flex items-center gap-2 flex-wrap">
-            <Badge className={cn('border', getPrioridadeColor(lead.prioridade))}>
-              {lead.prioridade}
+            <Badge className={cn('border', getPrioridadeColor(displayLead.prioridade))}>
+              {displayLead.prioridade}
             </Badge>
-            <Badge className={getStatusColor(lead.status)}>{lead.status}</Badge>
-            <span className="text-sm">Score: <strong>{lead.score}</strong></span>
+            <Badge className={getStatusColor(displayLead.status)}>{displayLead.status}</Badge>
+            <span className="text-sm">Score: <strong>{displayLead.score}</strong></span>
           </DialogDescription>
         </DialogHeader>
 
@@ -125,16 +145,16 @@ export function LeadDetailDialog({ lead, open, onOpenChange, onUpdate }: LeadDet
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div className="flex items-center gap-2">
               <MapPin className="h-4 w-4 text-muted-foreground" />
-              <span>{lead.cidade}, {lead.estado}</span>
+              <span>{displayLead.cidade}, {displayLead.estado}</span>
             </div>
             <div className="flex items-center gap-2">
-              <ContactPhone phone={lead.telefone} size="md" />
+              <ContactPhone phone={displayLead.telefone} size="md" message={mensagem} />
             </div>
             <div className="flex items-center gap-2">
               <Globe className="h-4 w-4 text-muted-foreground" />
-              {lead.website ? (
-                <a href={lead.website} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate">
-                  {lead.website}
+              {displayLead.website ? (
+                <a href={displayLead.website} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate">
+                  {displayLead.website}
                 </a>
               ) : (
                 <span className="text-muted-foreground">Sem site</span>
@@ -142,7 +162,7 @@ export function LeadDetailDialog({ lead, open, onOpenChange, onUpdate }: LeadDet
             </div>
             <div className="flex items-center gap-2">
               <Star className="h-4 w-4 text-yellow-400" />
-              <span>{lead.nota} ({lead.avaliacoes} avaliações)</span>
+              <span>{displayLead.nota} ({displayLead.avaliacoes} avaliações)</span>
             </div>
           </div>
 
@@ -159,7 +179,7 @@ export function LeadDetailDialog({ lead, open, onOpenChange, onUpdate }: LeadDet
               {analysis.screenshotPath && (
                 <img
                   src={analysis.screenshotPath}
-                  alt={`Screenshot ${lead.empresa}`}
+                  alt={`Screenshot ${displayLead.empresa}`}
                   className="rounded-md border mt-2 w-full max-h-48 object-cover object-top"
                 />
               )}
@@ -240,7 +260,7 @@ export function LeadDetailDialog({ lead, open, onOpenChange, onUpdate }: LeadDet
 
           <div className="flex gap-2">
             <Button variant="outline" className="flex-1" asChild>
-              <a href={lead.googleMapsUrl} target="_blank" rel="noopener noreferrer">
+              <a href={displayLead.googleMapsUrl} target="_blank" rel="noopener noreferrer">
                 <ExternalLink className="h-4 w-4" />
                 Google Maps
               </a>

@@ -1,5 +1,5 @@
 ﻿import { useState } from 'react';
-import { Eye, Star, Globe } from 'lucide-react';
+import { Eye, Star, Globe, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,15 +11,32 @@ import { cn, getPrioridadeColor, getStatusColor } from '@/lib/utils';
 
 interface LeadTableProps {
   leads: Lead[];
+  total?: number;
+  page?: number;
+  pageSize?: number;
+  onPageChange?: (page: number) => void;
   loading?: boolean;
   title?: string;
   highlightTop?: number;
   onRefresh: () => void;
 }
 
-export function LeadTable({ leads, loading, title = 'Leads', highlightTop, onRefresh }: LeadTableProps) {
+export function LeadTable({
+  leads,
+  total,
+  page = 1,
+  pageSize = 50,
+  onPageChange,
+  loading,
+  title = 'Leads',
+  highlightTop,
+  onRefresh,
+}: LeadTableProps) {
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+
+  const displayTotal = total ?? leads.length;
+  const totalPages = onPageChange ? Math.max(1, Math.ceil(displayTotal / pageSize)) : 1;
 
   function openLead(lead: Lead) {
     setSelectedLead(lead);
@@ -39,15 +56,40 @@ export function LeadTable({ leads, loading, title = 'Leads', highlightTop, onRef
   return (
     <>
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between gap-4">
           <CardTitle className="text-base">
-            {title} ({leads.length})
+            {title} ({displayTotal})
           </CardTitle>
+          {onPageChange && displayTotal > pageSize && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                disabled={page <= 1}
+                onClick={() => onPageChange(page - 1)}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span>
+                Página {page} de {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                disabled={page >= totalPages}
+                onClick={() => onPageChange(page + 1)}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           {leads.length === 0 ? (
             <p className="text-center text-muted-foreground py-8">
-              Nenhum lead encontrado. Use "Encontrar Oportunidades" para começar.
+              Nenhum lead encontrado. Use &quot;Encontrar Oportunidades&quot; para começar.
             </p>
           ) : (
             <div className="space-y-2">
@@ -75,7 +117,7 @@ export function LeadTable({ leads, loading, title = 'Leads', highlightTop, onRef
                         {lead.status}
                       </Badge>
                     </div>
-                    <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground flex-wrap">
                       <span>{lead.categoria}</span>
                       <span>{lead.cidade}</span>
                       {lead.telefone ? (

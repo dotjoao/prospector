@@ -59,6 +59,15 @@ export interface LeadFilters {
   prioridade?: Prioridade;
   status?: LeadStatus;
   busca?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface PaginatedLeads {
+  leads: Lead[];
+  total: number;
+  page: number;
+  limit: number;
 }
 
 export interface SearchParams {
@@ -70,8 +79,10 @@ export interface SearchParams {
 export interface FindOpportunitiesResult {
   leads: Lead[];
   totalFound: number;
+  newLeads: number;
   topProspects: Lead[];
   message: string;
+  warning?: string;
 }
 
 export interface AppConfig {

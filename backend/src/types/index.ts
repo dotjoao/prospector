@@ -66,6 +66,15 @@ export interface LeadFilters {
   prioridade?: Prioridade;
   status?: LeadStatus;
   busca?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface PaginatedLeads {
+  leads: Lead[];
+  total: number;
+  page: number;
+  limit: number;
 }
 
 export interface DashboardStats {
@@ -99,6 +108,8 @@ export interface GooglePlaceResult {
 export interface FindOpportunitiesResult {
   leads: Lead[];
   totalFound: number;
+  newLeads: number;
   topProspects: Lead[];
   message: string;
+  warning?: string;
 }

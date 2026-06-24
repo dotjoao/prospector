@@ -1,11 +1,12 @@
 ﻿import { Phone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { formatPhone, getWhatsAppLink } from '@/lib/utils';
+import { formatPhone, getDefaultWhatsAppMessage, getWhatsAppLink } from '@/lib/utils';
 
 interface ContactPhoneProps {
   phone: string;
   size?: 'sm' | 'md';
   showIcon?: boolean;
+  message?: string;
 }
 
 function WhatsAppIcon({ className }: { className?: string }) {
@@ -16,12 +17,13 @@ function WhatsAppIcon({ className }: { className?: string }) {
   );
 }
 
-export function ContactPhone({ phone, size = 'sm', showIcon = true }: ContactPhoneProps) {
+export function ContactPhone({ phone, size = 'sm', showIcon = true, message }: ContactPhoneProps) {
   if (!phone) {
     return <span className="text-muted-foreground">-</span>;
   }
 
-  const whatsappLink = getWhatsAppLink(phone);
+  const whatsappMessage = message?.trim() || getDefaultWhatsAppMessage();
+  const whatsappLink = getWhatsAppLink(phone, whatsappMessage);
   const isSmall = size === 'sm';
 
   return (
@@ -35,7 +37,7 @@ export function ContactPhone({ phone, size = 'sm', showIcon = true }: ContactPho
           className={`h-7 gap-1.5 border-green-500/30 bg-green-500/10 text-green-400 hover:bg-green-500/20 hover:text-green-300 ${isSmall ? 'px-2 text-xs' : ''}`}
           asChild
         >
-          <a href={whatsappLink} target="_blank" rel="noopener noreferrer" title="Abrir WhatsApp">
+          <a href={whatsappLink} target="_blank" rel="noopener noreferrer" title={`Abrir WhatsApp: ${whatsappMessage}`}>
             <WhatsAppIcon className="h-3.5 w-3.5" />
             WhatsApp
           </a>

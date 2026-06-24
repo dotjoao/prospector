@@ -1,6 +1,7 @@
 ﻿import {
   Lead,
   LeadFilters,
+  PaginatedLeads,
   DashboardStats,
   SearchParams,
   FindOpportunitiesResult,
@@ -25,6 +26,8 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  getHealth: () => request<{ status: string; storage: 'supabase' | 'json' }>('/health'),
+
   getDashboard: () => request<DashboardStats>('/dashboard'),
 
   getLeads: (filters?: LeadFilters) => {
@@ -37,7 +40,7 @@ export const api = {
       });
     }
     const query = params.toString();
-    return request<Lead[]>(`/leads${query ? `?${query}` : ''}`);
+    return request<PaginatedLeads>(`/leads${query ? `?${query}` : ''}`);
   },
 
   getLead: (id: string) => request<Lead>(`/leads/${id}`),

@@ -4,6 +4,7 @@ import { opportunitiesService } from '../services/opportunities.service.js';
 import { exportService } from '../services/export.service.js';
 import { configService } from '../services/config.service.js';
 import { generateProspectionMessage } from '../utils/message.js';
+import { getPersistenceMode, getStorageLabel } from '../lib/persistence.js';
 import { LeadFilters, SearchParams } from '../types/index.js';
 
 const router = Router();
@@ -14,7 +15,13 @@ function getParamId(req: Request): string {
 }
 
 router.get('/health', (_req: Request, res: Response) => {
-  res.json({ status: 'ok', service: 'LeadHunter API' });
+  const mode = getPersistenceMode();
+  res.json({
+    status: 'ok',
+    service: 'LeadHunter API',
+    storage: getStorageLabel(mode),
+    persistenceMode: mode,
+  });
 });
 
 router.get('/config', async (_req: Request, res: Response) => {
@@ -64,10 +71,12 @@ router.get('/leads', async (req: Request, res: Response) => {
       prioridade: req.query.prioridade as LeadFilters['prioridade'],
       status: req.query.status as LeadFilters['status'],
       busca: req.query.busca as string,
+      page: req.query.page ? Number(req.query.page) : 1,
+      limit: req.query.limit ? Number(req.query.limit) : 50,
     };
 
-    const leads = await leadsService.filterLeads(filters);
-    res.json(leads);
+    const result = await leadsService.filterLeadsPaginated(filters);
+    res.json(result);
   } catch (error) {
     res.status(500).json({ error: (error as Error).message });
   }

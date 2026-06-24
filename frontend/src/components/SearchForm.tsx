@@ -46,7 +46,7 @@ export function SearchForm({ onSearch, defaultCity = 'Cuiabá', defaultState = '
           Encontrar Oportunidades
         </CardTitle>
         <CardDescription>
-          Busque empresas por cidade, estado e categoria. Ex: Academia, Clínica Odontológica, Nutricionista
+          Busque empresas por cidade, estado e categoria. Confira se a UF corresponde à cidade (ex.: Campo Grande = MS).
         </CardDescription>
       </CardHeader>
       <CardContent>

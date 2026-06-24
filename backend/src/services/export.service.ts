@@ -2,7 +2,7 @@
 import { EXPORTS_DIR, getExportFileName, getExportFilePath } from '../config/paths.js';
 import { ensureDir } from '../utils/storage.js';
 import { getWhatsAppLink } from '../utils/phone.js';
-import { isLeadContacted } from '../utils/message.js';
+import { generateProspectionMessage, isLeadContacted } from '../utils/message.js';
 import { Lead, LeadStatus } from '../types/index.js';
 
 const STATUS_ROW_COLORS: Record<LeadStatus, string | null> = {
@@ -59,7 +59,8 @@ export class ExportService {
     sheet.views = [{ state: 'frozen', ySplit: 1 }];
 
     for (const lead of leads) {
-      const whatsappLink = getWhatsAppLink(lead.telefone);
+      const whatsappMessage = lead.mensagemProspeccao?.trim() || generateProspectionMessage(lead);
+      const whatsappLink = getWhatsAppLink(lead.telefone, whatsappMessage);
 
       const row = sheet.addRow({
         empresa: lead.empresa,

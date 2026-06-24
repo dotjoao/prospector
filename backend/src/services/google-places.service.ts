@@ -21,6 +21,11 @@ interface TextSearchNewResponse {
   error?: { message?: string; status?: string; code?: number };
 }
 
+interface GeocodeResponse {
+  results?: { geometry?: { location?: { lat: number; lng: number } } }[];
+  status?: string;
+}
+
 const SEARCH_FIELD_MASK = [
   'places.id',
   'places.displayName',
@@ -46,17 +51,25 @@ export class GooglePlacesService {
       );
     }
 
-    const textQuery = `${params.categoria} ${params.cidade} ${params.estado}`;
+    const textQuery = `${params.categoria} em ${params.cidade}, ${params.estado}, Brasil`;
     console.log(`[GooglePlaces] Buscando (API New): "${textQuery}"`);
+
+    const locationBias = await this.geocodeCity(apiKey, params.cidade, params.estado);
 
     const allResults: GooglePlaceResult[] = [];
     let pageToken: string | undefined;
 
     do {
-      const body: Record<string, string> = {
+      const body: Record<string, unknown> = {
         textQuery,
         languageCode: 'pt-BR',
+        regionCode: 'BR',
+        pageSize: 20,
       };
+
+      if (locationBias) {
+        body.locationBias = locationBias;
+      }
 
       if (pageToken) {
         body.pageToken = pageToken;
@@ -105,6 +118,40 @@ export class GooglePlacesService {
 
     console.log(`[GooglePlaces] ${allResults.length} empresas encontradas`);
     return allResults.slice(0, (await configService.getConfig()).maxResults);
+  }
+
+  private async geocodeCity(
+    apiKey: string,
+    cidade: string,
+    estado: string
+  ): Promise<{ circle: { center: { latitude: number; longitude: number }; radius: number } } | null> {
+    try {
+      const address = `${cidade}, ${estado}, Brasil`;
+      const response = await axios.get<GeocodeResponse>(
+        'https://maps.googleapis.com/maps/api/geocode/json',
+        {
+          params: { address, key: apiKey, language: 'pt-BR', region: 'br' },
+          timeout: 10000,
+        }
+      );
+
+      const location = response.data.results?.[0]?.geometry?.location;
+      if (!location) {
+        console.warn(`[GooglePlaces] Geocoding sem resultado para: ${address}`);
+        return null;
+      }
+
+      console.log(`[GooglePlaces] Centro: ${cidade}/${estado} → ${location.lat}, ${location.lng}`);
+      return {
+        circle: {
+          center: { latitude: location.lat, longitude: location.lng },
+          radius: 40000,
+        },
+      };
+    } catch (err) {
+      console.warn('[GooglePlaces] Geocoding falhou:', (err as Error).message);
+      return null;
+    }
   }
 
   private mapPlace(place: NewPlace): GooglePlaceResult | null {

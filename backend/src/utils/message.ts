@@ -8,6 +8,17 @@ const CONTACTED_STATUSES: LeadStatus[] = [
   'Perdido',
 ];
 
+export function getTimeGreeting(date: Date = new Date()): string {
+  const hour = date.getHours();
+  if (hour >= 5 && hour < 12) return 'Bom dia';
+  if (hour >= 12 && hour < 18) return 'Boa tarde';
+  return 'Boa noite';
+}
+
+export function getDefaultWhatsAppMessage(date: Date = new Date()): string {
+  return `${getTimeGreeting(date)}, tudo bem?`;
+}
+
 export function generateProspectionMessage(lead: Lead): string {
   const issues: string[] = [];
 
@@ -35,7 +46,7 @@ export function generateProspectionMessage(lead: Lead): string {
       ? `Analisei a presença digital da ${lead.empresa} e percebi que ${issues.slice(0, 2).join(' e ')}.`
       : `Analisei a presença digital da ${lead.empresa} e percebi que existem algumas oportunidades para aumentar a visibilidade online e facilitar o contato com novos clientes.`;
 
-  return `Olá, tudo bem?
+  return `${getDefaultWhatsAppMessage()}
 
 ${issueText}
 
