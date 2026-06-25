@@ -21,4 +21,4 @@ export function getExportFilePath(categoria?: string): string {
   return path.join(EXPORTS_DIR, getExportFileName(categoria));
 }
 
-export const API_PORT = 3333;
+export const API_PORT = Number(process.env.PORT || process.env.API_PORT || 3333);
