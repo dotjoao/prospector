@@ -8,13 +8,29 @@
   AppConfig,
   LeadStatus,
 } from '@/types';
+import { getAuthToken } from '@/lib/auth-token';
 
-const API_BASE = '/api';
+const API_BASE = import.meta.env.VITE_API_URL
+  ? `${import.meta.env.VITE_API_URL.replace(/\/$/, '')}/api`
+  : '/api';
+
+export function resolveApiUrl(path: string): string {
+  if (path.startsWith('http')) return path;
+  const apiOrigin = import.meta.env.VITE_API_URL?.replace(/\/$/, '');
+  return apiOrigin ? `${apiOrigin}${path}` : path;
+}
 
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
+  const token = getAuthToken();
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(options?.headers as Record<string, string> | undefined),
+  };
+  if (token) headers.Authorization = `Bearer ${token}`;
+
   const response = await fetch(`${API_BASE}${url}`, {
-    headers: { 'Content-Type': 'application/json' },
     ...options,
+    headers,
   });
 
   if (!response.ok) {
@@ -26,6 +42,23 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  login: (username: string, password: string) =>
+    request<{ token: string; user: { username: string } }>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ username, password }),
+    }),
+
+  getMe: (token?: string) =>
+    request<{ user: { username: string } }>('/auth/me', {
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    }),
+
+  logout: (token?: string) =>
+    request<{ success: boolean }>('/auth/logout', {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    }),
+
   getHealth: () => request<{ status: string; storage: 'supabase' | 'json' }>('/health'),
 
   getDashboard: () => request<DashboardStats>('/dashboard'),

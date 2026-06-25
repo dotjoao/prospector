@@ -3,7 +3,7 @@ import { Download, FileSpreadsheet, FolderDown, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
-import { api } from '@/services/api';
+import { api, resolveApiUrl } from '@/services/api';
 
 export interface ThemeOption {
   name: string;
@@ -18,7 +18,7 @@ interface ExportPanelProps {
 
 function downloadFile(url: string, fileName: string) {
   const link = document.createElement('a');
-  link.href = url;
+  link.href = resolveApiUrl(url);
   link.download = fileName;
   document.body.appendChild(link);
   link.click();

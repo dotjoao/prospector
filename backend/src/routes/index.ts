@@ -3,6 +3,7 @@ import { leadsService } from '../services/leads.service.js';
 import { opportunitiesService } from '../services/opportunities.service.js';
 import { exportService } from '../services/export.service.js';
 import { configService } from '../services/config.service.js';
+import { authService } from '../services/auth.service.js';
 import { generateProspectionMessage } from '../utils/message.js';
 import { getPersistenceMode, getStorageLabel } from '../lib/persistence.js';
 import { LeadFilters, SearchParams } from '../types/index.js';
@@ -13,6 +14,63 @@ function getParamId(req: Request): string {
   const id = req.params.id;
   return Array.isArray(id) ? id[0] : id;
 }
+
+function getBearerToken(req: Request): string | null {
+  const header = req.headers.authorization;
+  if (!header?.startsWith('Bearer ')) return null;
+  return header.slice(7).trim() || null;
+}
+
+router.post('/auth/login', async (req: Request, res: Response) => {
+  try {
+    const { username, password } = req.body as { username?: string; password?: string };
+
+    if (!username?.trim() || !password) {
+      res.status(400).json({ error: 'Usuário e senha são obrigatórios.' });
+      return;
+    }
+
+    const result = await authService.login(username.trim(), password);
+    if (!result) {
+      res.status(401).json({ error: 'Usuário ou senha incorretos.' });
+      return;
+    }
+
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
+router.get('/auth/me', async (req: Request, res: Response) => {
+  try {
+    const token = getBearerToken(req);
+    if (!token) {
+      res.status(401).json({ error: 'Não autenticado.' });
+      return;
+    }
+
+    const user = await authService.validateToken(token);
+    if (!user) {
+      res.status(401).json({ error: 'Sessão inválida ou expirada.' });
+      return;
+    }
+
+    res.json({ user });
+  } catch (error) {
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
+router.post('/auth/logout', async (req: Request, res: Response) => {
+  try {
+    const token = getBearerToken(req);
+    if (token) await authService.logout(token);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
 
 router.get('/health', (_req: Request, res: Response) => {
   const mode = getPersistenceMode();
