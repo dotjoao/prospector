@@ -1,4 +1,5 @@
 ﻿import { getSupabase, leadToRow, rowToLead, LeadRow } from '../lib/supabase.js';
+import { getDbPool, isDbDirectAvailable } from '../lib/db.js';
 import { Lead, LeadFilters, UpdateLeadPayload, DashboardStats, PaginatedLeads } from '../types/index.js';
 
 const LIST_COLUMNS =
@@ -120,10 +121,20 @@ export class SupabaseLeadsRepository {
   }
 
   async deleteAll(): Promise<number> {
+    if (isDbDirectAvailable()) {
+      const countResult = await getDbPool().query<{ count: string }>(
+        'SELECT COUNT(*)::text AS count FROM public.leads'
+      );
+      const count = Number(countResult.rows[0]?.count ?? 0);
+      if (count === 0) return 0;
+      await getDbPool().query('DELETE FROM public.leads');
+      return count;
+    }
+
     const { error, count } = await getSupabase()
       .from(this.table)
       .delete({ count: 'exact' })
-      .neq('id', '00000000-0000-0000-0000-000000000000');
+      .gte('score', 0);
 
     if (error) throw new Error(`[Supabase] Erro ao limpar leads: ${error.message}`);
     return count ?? 0;

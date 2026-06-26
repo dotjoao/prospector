@@ -41,11 +41,24 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: 'Erro desconhecido' }));
-      throw new Error(error.error || `HTTP ${response.status}`);
+      const text = await response.text();
+      let message = `Erro HTTP ${response.status}`;
+      try {
+        const error = JSON.parse(text) as { error?: string };
+        message = error.error || message;
+      } catch {
+        if (text.includes('Cannot DELETE')) {
+          message = 'Backend desatualizado — faça redeploy no Render.';
+        } else if (text.trim()) {
+          message = text.slice(0, 200);
+        }
+      }
+      throw new Error(message);
     }
 
-    return response.json();
+    const text = await response.text();
+    if (!text) return {} as T;
+    return JSON.parse(text) as T;
   } catch (err) {
     if (err instanceof Error && err.name === 'AbortError') {
       throw new Error(
