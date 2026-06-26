@@ -1,11 +1,11 @@
-﻿services:
+services:
   - type: web
     name: leadhunter-api
     runtime: node
     region: oregon
     plan: free
     rootDir: backend
-    buildCommand: npm install --include=dev && npm run build
+    buildCommand: npm install
     startCommand: npm start
     healthCheckPath: /api/health
     envVars:
