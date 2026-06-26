@@ -75,6 +75,14 @@ export async function initPersistence(): Promise<PersistenceMode> {
 
   try {
     if (!(await checkSupabaseDbReady())) {
+      if (process.env.NODE_ENV === 'production') {
+        console.warn('[Persistência] Tabelas PostgreSQL não encontradas em produção.');
+        console.warn('[Persistência] Execute as migrations no Supabase Dashboard.');
+        mode = 'supabase-storage';
+        initialized = true;
+        return mode;
+      }
+
       const created = await applyDatabaseSchema();
       if (created) {
         await new Promise((r) => setTimeout(r, 1500));

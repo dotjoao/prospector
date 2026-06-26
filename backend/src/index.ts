@@ -23,10 +23,6 @@ app.use(
         callback(null, true);
         return;
       }
-      if (allowedOrigins.includes(origin)) {
-        callback(null, true);
-        return;
-      }
       callback(null, allowedOrigins.includes(origin));
     },
   })
@@ -51,25 +47,24 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
   res.status(500).json({ error: err.message || 'Erro interno do servidor' });
 });
 
-async function start() {
-  await initPersistence();
-  const mode = getPersistenceMode();
-
+function logPersistenceMode(mode: ReturnType<typeof getPersistenceMode>) {
   const modeLabel =
     mode === 'supabase-db'
       ? 'Supabase (PostgreSQL)'
       : mode === 'supabase-storage'
         ? 'Supabase (Storage)'
         : 'Arquivos JSON locais';
+  console.log(`💾 Persistência: ${modeLabel}`);
+}
 
+async function start() {
   app.listen(API_PORT, '0.0.0.0', () => {
     console.log(`\n🎯 LeadHunter API rodando na porta ${API_PORT}`);
     console.log(`📁 Screenshots: ${path.resolve(SCREENSHOTS_DIR)}`);
-    console.log(`💾 Persistência: ${modeLabel}`);
     if (allowedOrigins?.length) {
       console.log(`🌐 CORS: ${allowedOrigins.join(', ')}`);
     }
-    console.log('');
+    console.log('⏳ Inicializando persistência em background...\n');
   }).on('error', (err: NodeJS.ErrnoException) => {
     if (err.code === 'EADDRINUSE') {
       console.error(`\n❌ Porta ${API_PORT} já está em uso.`);
@@ -80,6 +75,13 @@ async function start() {
     }
     process.exit(1);
   });
+
+  try {
+    await initPersistence();
+    logPersistenceMode(getPersistenceMode());
+  } catch (err) {
+    console.error('[Persistência] Falha na inicialização:', (err as Error).message);
+  }
 }
 
 start().catch((err) => {

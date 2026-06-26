@@ -14,6 +14,8 @@ const API_BASE = import.meta.env.VITE_API_URL
   ? `${import.meta.env.VITE_API_URL.replace(/\/$/, '')}/api`
   : '/api';
 
+const REQUEST_TIMEOUT_MS = 45000;
+
 export function resolveApiUrl(path: string): string {
   if (path.startsWith('http')) return path;
   const apiOrigin = import.meta.env.VITE_API_URL?.replace(/\/$/, '');
@@ -28,17 +30,37 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
   };
   if (token) headers.Authorization = `Bearer ${token}`;
 
-  const response = await fetch(`${API_BASE}${url}`, {
-    ...options,
-    headers,
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Erro desconhecido' }));
-    throw new Error(error.error || `HTTP ${response.status}`);
+  try {
+    const response = await fetch(`${API_BASE}${url}`, {
+      ...options,
+      headers,
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Erro desconhecido' }));
+      throw new Error(error.error || `HTTP ${response.status}`);
+    }
+
+    return response.json();
+  } catch (err) {
+    if (err instanceof Error && err.name === 'AbortError') {
+      throw new Error(
+        'Servidor não respondeu a tempo. O backend no Render pode estar iniciando — aguarde 1 minuto e tente novamente.'
+      );
+    }
+    if (err instanceof TypeError) {
+      throw new Error(
+        'Não foi possível conectar à API. Verifique se o backend está online no Render.'
+      );
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeout);
   }
-
-  return response.json();
 }
 
 export const api = {
