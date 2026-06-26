@@ -46,7 +46,7 @@ Teste no navegador: `https://SUA-URL.onrender.com/api/health` → deve retornar 
 
 1. Acesse [vercel.com/new](https://vercel.com/new)
 2. Importe o repositório `prospector`
-3. **Não altere** Build/Output — o `vercel.json` na raiz já configura tudo
+3. Em **Root Directory**, clique **Edit** e selecione **`frontend`**
 4. Adicione **1 variável de ambiente**:
 
 | Variável | Valor |
