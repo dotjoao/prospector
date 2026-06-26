@@ -306,6 +306,50 @@ export class LeadsService {
 
 
 
+  async clearAllLeads(): Promise<number> {
+
+    const mode = getPersistenceMode();
+
+
+
+    if (mode === 'supabase-db') {
+
+      const count = await supabaseLeadsRepository.deleteAll();
+
+      console.log(`[Leads] ${count} leads removidos`);
+
+      return count;
+
+    }
+
+
+
+    if (mode === 'supabase-storage') {
+
+      const count = await storageLeadsRepository.deleteAll();
+
+      console.log(`[Leads] ${count} leads removidos`);
+
+      return count;
+
+    }
+
+
+
+    const leads = await readJsonFile<Lead[]>(LEADS_FILE, []);
+
+    const count = leads.length;
+
+    await writeJsonFile(LEADS_FILE, []);
+
+    console.log(`[Leads] ${count} leads removidos`);
+
+    return count;
+
+  }
+
+
+
   async getCategories(): Promise<{ name: string; count: number }[]> {
 
     const mode = getPersistenceMode();

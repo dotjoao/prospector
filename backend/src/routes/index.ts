@@ -166,6 +166,15 @@ router.put('/leads/:id', async (req: Request, res: Response) => {
   }
 });
 
+router.delete('/leads', async (_req: Request, res: Response) => {
+  try {
+    const count = await leadsService.clearAllLeads();
+    res.json({ success: true, count });
+  } catch (error) {
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
 router.delete('/leads/:id', async (req: Request, res: Response) => {
   try {
     const deleted = await leadsService.deleteLead(getParamId(req));

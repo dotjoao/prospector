@@ -109,6 +109,9 @@ export const api = {
   deleteLead: (id: string) =>
     request<{ success: boolean }>(`/leads/${id}`, { method: 'DELETE' }),
 
+  clearAllLeads: () =>
+    request<{ success: boolean; count: number }>('/leads', { method: 'DELETE' }),
+
   findOpportunities: (params: SearchParams) =>
     request<FindOpportunitiesResult>('/opportunities/find', {
       method: 'POST',

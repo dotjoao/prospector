@@ -119,6 +119,16 @@ export class SupabaseLeadsRepository {
     return (count ?? 0) > 0;
   }
 
+  async deleteAll(): Promise<number> {
+    const { error, count } = await getSupabase()
+      .from(this.table)
+      .delete({ count: 'exact' })
+      .neq('id', '00000000-0000-0000-0000-000000000000');
+
+    if (error) throw new Error(`[Supabase] Erro ao limpar leads: ${error.message}`);
+    return count ?? 0;
+  }
+
   async filter(filters: LeadFilters): Promise<Lead[]> {
     const result = await this.filterPaginated({ ...filters, page: 1, limit: 10000 });
     return result.leads;

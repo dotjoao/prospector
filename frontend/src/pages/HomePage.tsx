@@ -9,6 +9,8 @@ import {
   FileSpreadsheet,
   Database,
   LogOut,
+  Trash2,
+  Loader2,
 } from 'lucide-react';
 import { Dashboard } from '@/components/Dashboard';
 import { SearchForm } from '@/components/SearchForm';
@@ -18,6 +20,13 @@ import { ExportPanel, useThemes } from '@/components/ExportPanel';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { api } from '@/services/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { Lead, LeadFilters, SearchParams } from '@/types';
@@ -39,6 +48,8 @@ export function HomePage() {
   const [dashboardKey, setDashboardKey] = useState(0);
   const [storage, setStorage] = useState<'supabase' | 'json'>('json');
   const [persistenceMode, setPersistenceMode] = useState<string>('json');
+  const [clearDialogOpen, setClearDialogOpen] = useState(false);
+  const [clearing, setClearing] = useState(false);
   const { themes, loading: themesLoading } = useThemes(dashboardKey);
 
   const loadLeads = useCallback(async () => {
@@ -106,6 +117,25 @@ export function HomePage() {
     setDashboardKey((k) => k + 1);
   }
 
+  async function handleClearAllLeads() {
+    setClearing(true);
+    try {
+      const result = await api.clearAllLeads();
+      setFilters({});
+      setPage(1);
+      setTopProspects([]);
+      setLeads([]);
+      setTotalLeads(0);
+      setClearDialogOpen(false);
+      setDashboardKey((k) => k + 1);
+      showNotification('success', `${result.count} leads removidos com sucesso.`);
+    } catch (err) {
+      showNotification('error', (err as Error).message);
+    } finally {
+      setClearing(false);
+    }
+  }
+
   const leadsTitle = filters.categoria
     ? `Leads — ${filters.categoria}`
     : 'Todos os leads';
@@ -136,6 +166,16 @@ export function HomePage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setClearDialogOpen(true)}
+              className="text-destructive hover:text-destructive"
+              title="Limpar todos os leads"
+            >
+              <Trash2 className="h-4 w-4" />
+              <span className="hidden sm:inline ml-1">Limpar</span>
+            </Button>
             <Button variant="outline" size="sm" onClick={handleRefresh}>
               <RefreshCw className="h-4 w-4" />
               <span className="hidden sm:inline ml-1">Atualizar</span>
@@ -241,6 +281,33 @@ export function HomePage() {
       <footer className="border-t mt-8 py-4 text-center text-xs text-muted-foreground">
         LeadHunter — Dados no {storageLabel} · Planilhas Excel exportáveis
       </footer>
+
+      <Dialog open={clearDialogOpen} onOpenChange={setClearDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Limpar todos os leads?</DialogTitle>
+            <DialogDescription>
+              Esta ação remove permanentemente todos os {totalLeads > 0 ? `${totalLeads} ` : ''}leads
+              do banco de dados. Não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setClearDialogOpen(false)} disabled={clearing}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" onClick={handleClearAllLeads} disabled={clearing}>
+              {clearing ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Limpando...
+                </>
+              ) : (
+                'Sim, limpar tudo'
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -52,6 +52,13 @@ export class StorageLeadsRepository {
     return true;
   }
 
+  async deleteAll(): Promise<number> {
+    const leads = await readStorageJson<Lead[]>(STORAGE_LEADS_PATH, []);
+    const count = leads.length;
+    await this.saveAll([]);
+    return count;
+  }
+
   async filter(filters: LeadFilters): Promise<Lead[]> {
     let leads = await this.getAll();
 
