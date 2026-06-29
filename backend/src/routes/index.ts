@@ -79,6 +79,7 @@ router.get('/health', (_req: Request, res: Response) => {
     service: 'LeadHunter API',
     storage: getStorageLabel(mode),
     persistenceMode: mode,
+    supabaseConfigured: !!(process.env.SUPABASE_URL && (process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY)),
   });
 });
 

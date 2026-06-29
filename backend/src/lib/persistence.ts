@@ -33,8 +33,28 @@ async function checkSupabaseDbReady(): Promise<boolean> {
 }
 
 async function migrateSourcesToDb(): Promise<void> {
+  const { data: settings, error: settingsError } = await getSupabase()
+    .from('app_settings')
+    .select('leads_file_import_done')
+    .eq('id', 1)
+    .maybeSingle();
+
+  if (settingsError && !settingsError.message.includes('does not exist')) {
+    throw new Error(`[Supabase] Erro ao ler flag de import: ${settingsError.message}`);
+  }
+
+  if (settings?.leads_file_import_done) {
+    const dbCount = await supabaseLeadsRepository.countAll();
+    console.log(`[Persistência] Import de arquivos já concluído (${dbCount} leads no banco)`);
+    return;
+  }
+
   const dbCount = await supabaseLeadsRepository.countAll();
   if (dbCount > 0) {
+    await getSupabase()
+      .from('app_settings')
+      .update({ leads_file_import_done: true })
+      .eq('id', 1);
     console.log(`[Persistência] PostgreSQL já tem ${dbCount} leads`);
     return;
   }
@@ -55,6 +75,11 @@ async function migrateSourcesToDb(): Promise<void> {
     }
     console.log(`[Persistência] ${leads.length} leads migrados → PostgreSQL`);
   }
+
+  await getSupabase()
+    .from('app_settings')
+    .update({ leads_file_import_done: true })
+    .eq('id', 1);
 
   const storageConfig = await readStorageJson<AppConfig | null>(STORAGE_CONFIG_PATH, null);
   const localConfig = await readJsonFile<AppConfig>(CONFIG_FILE, DEFAULT_CONFIG);
