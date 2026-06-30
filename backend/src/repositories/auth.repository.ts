@@ -1,4 +1,4 @@
-﻿import { getSupabase } from '../lib/supabase.js';
+﻿import { getSupabase, isSupabaseConfigured } from '../lib/supabase.js';
 import { getDbPool, isDbDirectAvailable } from '../lib/db.js';
 
 export interface AuthUser {
@@ -10,15 +10,27 @@ const SESSION_DAYS = 7;
 
 export class AuthRepository {
   async verifyLogin(username: string, password: string): Promise<AuthUser | null> {
-    if (isDbDirectAvailable()) {
-      const { rows } = await getDbPool().query<{ user_id: string; username: string }>(
-        'SELECT user_id, username FROM public.verify_user_login($1, $2)',
-        [username, password]
-      );
-      const row = rows[0];
-      return row ? { id: row.user_id, username: row.username } : null;
+    if (isSupabaseConfigured()) {
+      return this.verifyLoginViaSupabase(username, password);
     }
 
+    if (isDbDirectAvailable()) {
+      return this.verifyLoginViaPg(username, password);
+    }
+
+    throw new Error('Autenticação indisponível: configure Supabase ou SUPABASE_DB_PASSWORD.');
+  }
+
+  private async verifyLoginViaPg(username: string, password: string): Promise<AuthUser | null> {
+    const { rows } = await getDbPool().query<{ user_id: string; username: string }>(
+      'SELECT user_id, username FROM public.verify_user_login($1, $2)',
+      [username, password]
+    );
+    const row = rows[0];
+    return row ? { id: row.user_id, username: row.username } : null;
+  }
+
+  private async verifyLoginViaSupabase(username: string, password: string): Promise<AuthUser | null> {
     const { data, error } = await getSupabase().rpc('verify_user_login', {
       p_username: username,
       p_password: password,

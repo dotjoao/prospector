@@ -1,4 +1,4 @@
-﻿import { getSupabase, leadToRow, rowToLead, LeadRow } from '../lib/supabase.js';
+﻿import { getSupabase, leadToRow, rowToLead, LeadRow, isSupabaseConfigured } from '../lib/supabase.js';
 import { getDbPool, isDbDirectAvailable } from '../lib/db.js';
 import { getLeadSortScore } from '../lib/strategy-engine.js';
 import { Lead, LeadFilters, UpdateLeadPayload, DashboardStats, PaginatedLeads } from '../types/index.js';
@@ -128,7 +128,7 @@ export class SupabaseLeadsRepository {
   }
 
   async deleteAll(): Promise<number> {
-    if (isDbDirectAvailable()) {
+    if (!isSupabaseConfigured() && isDbDirectAvailable()) {
       const countResult = await getDbPool().query<{ count: string }>(
         'SELECT COUNT(*)::text AS count FROM public.leads'
       );
