@@ -121,7 +121,7 @@ export function LeadTable({
                       <span>{lead.categoria}</span>
                       <span>{lead.cidade}</span>
                       {lead.telefone ? (
-                        <ContactPhone phone={lead.telefone} />
+                        <ContactPhone phone={lead.telefone} lead={lead} />
                       ) : (
                         <span className="text-muted-foreground">Sem telefone</span>
                       )}

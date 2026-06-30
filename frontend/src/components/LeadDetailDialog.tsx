@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { ContactPhone } from '@/components/ContactPhone';
+import { WhatsAppMenu } from '@/components/WhatsAppMenu';
 import {
   Dialog,
   DialogContent,
@@ -148,7 +149,12 @@ export function LeadDetailDialog({ lead, open, onOpenChange, onUpdate }: LeadDet
               <span>{displayLead.cidade}, {displayLead.estado}</span>
             </div>
             <div className="flex items-center gap-2">
-              <ContactPhone phone={displayLead.telefone} size="md" message={mensagem} />
+              <ContactPhone
+                phone={displayLead.telefone}
+                lead={displayLead}
+                size="md"
+                message={mensagem}
+              />
             </div>
             <div className="flex items-center gap-2">
               <Globe className="h-4 w-4 text-muted-foreground" />
@@ -223,10 +229,27 @@ export function LeadDetailDialog({ lead, open, onOpenChange, onUpdate }: LeadDet
           </div>
 
           <div className="border-t pt-4 space-y-3">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <h4 className="font-medium text-sm">Enviar no WhatsApp</h4>
+              <WhatsAppMenu
+                phone={displayLead.telefone}
+                lead={displayLead}
+                pitchMessage={mensagem}
+                size="md"
+                showPhone={false}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Escolha: <strong>1. Saudação</strong> (oi, tudo bem?) → aguarde resposta →{' '}
+              <strong>2. Pitch</strong> (elogio + oferta) → <strong>3. Follow-up</strong> se não responder.
+            </p>
+          </div>
+
+          <div className="border-t pt-4 space-y-3">
             <div className="flex items-center justify-between">
               <h4 className="font-medium text-sm flex items-center gap-2">
                 <MessageSquare className="h-4 w-4" />
-                Mensagem de Prospecção
+                Mensagem 2 — Pitch (editável)
               </h4>
               <div className="flex gap-2">
                 <Button
@@ -246,11 +269,11 @@ export function LeadDetailDialog({ lead, open, onOpenChange, onUpdate }: LeadDet
             <Textarea
               value={mensagem}
               onChange={(e) => setMensagem(e.target.value)}
-              placeholder="Clique em Gerar Mensagem ou escreva sua mensagem personalizada..."
+              placeholder="Usada na opção 2 do menu WhatsApp. Gere ou edite aqui."
               rows={8}
             />
             <p className="text-xs text-muted-foreground">
-              Edite livremente. Ao salvar, a mensagem será gravada no lead e exportada na planilha.
+              Ao salvar, a mensagem será gravada no lead e usada na opção &quot;Pitch&quot; do WhatsApp.
             </p>
           </div>
 
