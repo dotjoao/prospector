@@ -49,6 +49,8 @@ export function HomePage() {
   const [filters, setFilters] = useState<LeadFilters>({});
   const [loading, setLoading] = useState(false);
   const [searching, setSearching] = useState(false);
+  const [searchPhase, setSearchPhase] = useState<'warming' | 'searching'>('warming');
+  const [searchElapsed, setSearchElapsed] = useState(0);
   const [activeTab, setActiveTab] = useState('prospectar');
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [defaultCity, setDefaultCity] = useState('Cuiabá');
@@ -79,6 +81,7 @@ export function HomePage() {
 
   useEffect(() => {
     loadLeads();
+    api.warmup().catch(() => {});
     api.getConfig().then((config) => {
       setDefaultCity(config.defaultCity);
       setDefaultState(config.defaultState);
@@ -89,6 +92,18 @@ export function HomePage() {
     }).catch(() => {});
   }, [loadLeads]);
 
+  useEffect(() => {
+    if (!searching) {
+      setSearchElapsed(0);
+      return;
+    }
+    const start = Date.now();
+    const interval = setInterval(() => {
+      setSearchElapsed(Math.floor((Date.now() - start) / 1000));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [searching]);
+
   function showNotification(type: 'success' | 'error', message: string) {
     setNotification({ type, message });
     setTimeout(() => setNotification(null), 5000);
@@ -96,7 +111,10 @@ export function HomePage() {
 
   async function handleSearch(params: SearchParams) {
     setSearching(true);
+    setSearchPhase('warming');
     try {
+      await api.warmup();
+      setSearchPhase('searching');
       const result = await api.findOpportunities(params);
       setTopProspects(result.topProspects);
 
@@ -251,12 +269,25 @@ export function HomePage() {
               defaultState={defaultState}
             />
             {searching && (
-              <div className="glass-card py-12 text-center space-y-3">
-                <div className="inline-block h-9 w-9 animate-spin rounded-full border-[3px] border-primary border-t-transparent" />
-                <p className="text-sm text-muted-foreground">
-                  Buscando empresas e analisando sites...
-                </p>
-                <p className="text-xs text-muted-foreground/70">Pode levar alguns minutos</p>
+              <div className="glass-card py-12 text-center space-y-4">
+                <div className="inline-block h-10 w-10 animate-spin rounded-full border-[3px] border-primary border-t-transparent" />
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">
+                    {searchPhase === 'warming'
+                      ? 'Conectando ao servidor...'
+                      : 'Buscando empresas e analisando sites...'}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {searchPhase === 'warming'
+                      ? 'O servidor pode levar até 1 minuto para acordar (Render free)'
+                      : 'Isso pode levar de 1 a 3 minutos dependendo da quantidade de resultados'}
+                  </p>
+                  {searchElapsed > 0 && (
+                    <p className="text-xs text-muted-foreground/70 tabular-nums">
+                      {searchElapsed}s decorridos
+                    </p>
+                  )}
+                </div>
               </div>
             )}
             {topProspects.length > 0 && !searching && (

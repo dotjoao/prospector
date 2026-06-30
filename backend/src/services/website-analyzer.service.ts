@@ -2,7 +2,7 @@
 import * as cheerio from 'cheerio';
 import { WebsiteAnalysis, SiteStatus } from '../types/index.js';
 
-const TIMEOUT_MS = 10000;
+const TIMEOUT_MS = 6000;
 
 export class WebsiteAnalyzerService {
   async analyze(website: string): Promise<WebsiteAnalysis> {

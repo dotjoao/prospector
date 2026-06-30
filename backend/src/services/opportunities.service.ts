@@ -8,7 +8,7 @@ import { calculateScore, extractStateFromAddress } from '../utils/score.js';
 import { applyStrategyToNewLead, getLeadSortScore } from '../lib/strategy-engine.js';
 import { Lead, SearchParams, FindOpportunitiesResult } from '../types/index.js';
 
-const ANALYSIS_CONCURRENCY = 5;
+const ANALYSIS_CONCURRENCY = 10;
 
 function countLeadsMatchingState(leads: Lead[], params: SearchParams): number {
   return leads.filter((lead) => {

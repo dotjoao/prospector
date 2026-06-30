@@ -14,7 +14,9 @@ const API_BASE = import.meta.env.VITE_API_URL
   ? `${import.meta.env.VITE_API_URL.replace(/\/$/, '')}/api`
   : '/api';
 
-const REQUEST_TIMEOUT_MS = 45000;
+const DEFAULT_TIMEOUT_MS = 45000;
+const SEARCH_TIMEOUT_MS = 5 * 60 * 1000; // busca analisa dezenas de sites
+const WARMUP_TIMEOUT_MS = 90 * 1000; // cold start do Render free tier
 
 export function resolveApiUrl(path: string): string {
   if (path.startsWith('http')) return path;
@@ -22,7 +24,7 @@ export function resolveApiUrl(path: string): string {
   return apiOrigin ? `${apiOrigin}${path}` : path;
 }
 
-async function request<T>(url: string, options?: RequestInit): Promise<T> {
+async function request<T>(url: string, options?: RequestInit, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<T> {
   const token = getAuthToken();
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -31,7 +33,7 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
   if (token) headers.Authorization = `Bearer ${token}`;
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
     const response = await fetch(`${API_BASE}${url}`, {
@@ -61,8 +63,11 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
     return JSON.parse(text) as T;
   } catch (err) {
     if (err instanceof Error && err.name === 'AbortError') {
+      const isSearch = timeoutMs > DEFAULT_TIMEOUT_MS;
       throw new Error(
-        'Servidor não respondeu a tempo. O backend no Render pode estar iniciando — aguarde 1 minuto e tente novamente.'
+        isSearch
+          ? 'A busca demorou mais que o esperado. Tente uma categoria mais específica ou aguarde e tente novamente.'
+          : 'Servidor não respondeu a tempo. O backend no Render pode estar iniciando — aguarde 1 minuto e tente novamente.'
       );
     }
     if (err instanceof TypeError) {
@@ -96,6 +101,10 @@ export const api = {
 
   getHealth: () => request<{ status: string; storage: 'supabase' | 'json' }>('/health'),
 
+  /** Acorda o servidor no Render (cold start) antes de operações longas */
+  warmup: () =>
+    request<{ status: string }>('/health', undefined, WARMUP_TIMEOUT_MS).catch(() => null),
+
   getDashboard: () => request<DashboardStats>('/dashboard'),
 
   getLeads: (filters?: LeadFilters) => {
@@ -126,10 +135,14 @@ export const api = {
     request<{ success: boolean; count: number }>('/leads', { method: 'DELETE' }),
 
   findOpportunities: (params: SearchParams) =>
-    request<FindOpportunitiesResult>('/opportunities/find', {
-      method: 'POST',
-      body: JSON.stringify(params),
-    }),
+    request<FindOpportunitiesResult>(
+      '/opportunities/find',
+      {
+        method: 'POST',
+        body: JSON.stringify(params),
+      },
+      SEARCH_TIMEOUT_MS
+    ),
 
   generateMessage: (id: string) =>
     request<{ message: string }>(`/leads/${id}/message`),
