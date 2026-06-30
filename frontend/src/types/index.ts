@@ -8,6 +8,17 @@
 
 export type Prioridade = 'Baixa' | 'Media' | 'Alta' | 'Muito Alta';
 
+export type CityTier = 'TIER_1' | 'TIER_2' | 'TIER_3';
+
+export type LeadStrategyType = 'DIRECT' | 'INDIRECT' | 'AUTHORITY';
+
+export type MessageVariant =
+  | 'direct_google_focus'
+  | 'direct_lead_generation'
+  | 'indirect_value_focus'
+  | 'indirect_positioning'
+  | 'authority_social_proof';
+
 export type SiteStatus = 'Online' | 'Offline' | 'Timeout' | 'Sem Site';
 
 export interface WebsiteAnalysis {
@@ -34,6 +45,12 @@ export interface Lead {
   googleMapsUrl: string;
   dataColeta: string;
   score: number;
+  siteScore?: number;
+  cityTier?: CityTier;
+  nicheIntentScore?: number;
+  leadScoreFinal?: number;
+  leadStrategyType?: LeadStrategyType;
+  messageVariant?: MessageVariant;
   prioridade: Prioridade;
   status: LeadStatus;
   ultimoContato?: string;
@@ -49,6 +66,9 @@ export interface DashboardStats {
   semSite: number;
   contatados: number;
   fechados: number;
+  leadsQuentes?: number;
+  leadsMornos?: number;
+  leadsFrios?: number;
 }
 
 export interface LeadFilters {

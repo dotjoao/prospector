@@ -11,6 +11,7 @@ import { storageLeadsRepository } from '../repositories/storage-json.repository.
 import { Lead, LeadFilters, DashboardStats, UpdateLeadPayload, PaginatedLeads } from '../types/index.js';
 
 import { isLeadContacted } from '../utils/message.js';
+import { enrichLeadStrategy, getLeadSortScore } from '../lib/strategy-engine.js';
 
 
 
@@ -84,7 +85,7 @@ function filterInMemory(leads: Lead[], filters: LeadFilters): Lead[] {
 
   if (filters.scoreMinimo !== undefined) {
 
-    result = result.filter((l) => l.score >= filters.scoreMinimo!);
+    result = result.filter((l) => getLeadSortScore(l) >= filters.scoreMinimo!);
 
   }
 
@@ -102,8 +103,16 @@ function filterInMemory(leads: Lead[], filters: LeadFilters): Lead[] {
 
 
 
-  return result.sort((a, b) => b.score - a.score);
+  return sortLeadsByPriority(result);
 
+}
+
+function enrichLeads(leads: Lead[]): Lead[] {
+  return sortLeadsByPriority(leads.map(enrichLeadStrategy));
+}
+
+function sortLeadsByPriority(leads: Lead[]): Lead[] {
+  return [...leads].sort((a, b) => getLeadSortScore(b) - getLeadSortScore(a));
 }
 
 
@@ -116,9 +125,9 @@ export class LeadsService {
 
     if (mode === 'supabase-db') return supabaseLeadsRepository.getAll();
 
-    if (mode === 'supabase-storage') return storageLeadsRepository.getAll();
+    if (mode === 'supabase-storage') return enrichLeads(await storageLeadsRepository.getAll());
 
-    return readJsonFile<Lead[]>(LEADS_FILE, []);
+    return enrichLeads(await readJsonFile<Lead[]>(LEADS_FILE, []));
 
   }
 
@@ -134,7 +143,8 @@ export class LeadsService {
 
     const leads = await readJsonFile<Lead[]>(LEADS_FILE, []);
 
-    return leads.find((l) => l.id === id);
+    const found = leads.find((l) => l.id === id);
+    return found ? enrichLeadStrategy(found) : undefined;
 
   }
 
@@ -400,11 +410,9 @@ export class LeadsService {
 
     const leads = await readJsonFile<Lead[]>(LEADS_FILE, []);
 
-    return leads
-
-      .filter((l) => l.categoria?.toLowerCase() === target)
-
-      .sort((a, b) => b.score - a.score);
+    return enrichLeads(
+      leads.filter((l) => l.categoria?.toLowerCase() === target)
+    );
 
   }
 
@@ -418,11 +426,11 @@ export class LeadsService {
 
 
 
-    const all = mode === 'supabase-storage'
-
-      ? await storageLeadsRepository.getAll()
-
-      : await readJsonFile<Lead[]>(LEADS_FILE, []);
+    const all = enrichLeads(
+      mode === 'supabase-storage'
+        ? await storageLeadsRepository.getAll()
+        : await readJsonFile<Lead[]>(LEADS_FILE, [])
+    );
 
 
 
@@ -452,21 +460,25 @@ export class LeadsService {
 
     const leads = await this.getAllLeads();
 
+    const scoreOf = (l: Lead) => getLeadSortScore(l);
+
     return {
 
       totalLeads: leads.length,
 
-      altaPrioridade: leads.filter(
-
-        (l) => l.prioridade === 'Alta' || l.prioridade === 'Muito Alta'
-
-      ).length,
+      altaPrioridade: leads.filter((l) => scoreOf(l) >= 120).length,
 
       semSite: leads.filter((l) => !l.website || l.website.trim() === '').length,
 
       contatados: leads.filter(isLeadContacted).length,
 
       fechados: leads.filter((l) => l.status === 'Fechado').length,
+
+      leadsQuentes: leads.filter((l) => scoreOf(l) >= 160).length,
+
+      leadsMornos: leads.filter((l) => scoreOf(l) >= 120 && scoreOf(l) < 160).length,
+
+      leadsFrios: leads.filter((l) => scoreOf(l) < 120).length,
 
     };
 

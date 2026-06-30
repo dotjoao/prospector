@@ -1,5 +1,6 @@
 ﻿import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { Lead, AppConfig, WebsiteAnalysis } from '../types/index.js';
+import { enrichLeadStrategy } from './strategy-engine.js';
 
 export interface LeadRow {
   id: string;
@@ -15,6 +16,12 @@ export interface LeadRow {
   google_maps_url: string;
   data_coleta: string;
   score: number;
+  site_score: number | null;
+  city_tier: string | null;
+  niche_intent_score: number | null;
+  lead_score_final: number | null;
+  lead_strategy_type: string | null;
+  message_variant: string | null;
   prioridade: string;
   status: string;
   ultimo_contato: string | null;
@@ -85,7 +92,13 @@ export function leadToRow(lead: Lead): Omit<LeadRow, 'created_at' | 'updated_at'
     avaliacoes: lead.avaliacoes,
     google_maps_url: lead.googleMapsUrl,
     data_coleta: lead.dataColeta,
-    score: lead.score,
+    score: lead.siteScore ?? lead.score,
+    site_score: lead.siteScore ?? lead.score,
+    city_tier: lead.cityTier ?? null,
+    niche_intent_score: lead.nicheIntentScore ?? null,
+    lead_score_final: lead.leadScoreFinal ?? null,
+    lead_strategy_type: lead.leadStrategyType ?? null,
+    message_variant: lead.messageVariant ?? null,
     prioridade: lead.prioridade,
     status: lead.status,
     ultimo_contato: lead.ultimoContato?.split('T')[0] || null,
@@ -97,7 +110,7 @@ export function leadToRow(lead: Lead): Omit<LeadRow, 'created_at' | 'updated_at'
 }
 
 export function rowToLead(row: LeadRow): Lead {
-  return {
+  const lead: Lead = {
     id: row.id,
     empresa: row.empresa,
     categoria: row.categoria,
@@ -110,7 +123,13 @@ export function rowToLead(row: LeadRow): Lead {
     avaliacoes: row.avaliacoes,
     googleMapsUrl: row.google_maps_url,
     dataColeta: row.data_coleta,
-    score: row.score,
+    score: row.site_score ?? row.score,
+    siteScore: row.site_score ?? row.score,
+    cityTier: (row.city_tier as Lead['cityTier']) || undefined,
+    nicheIntentScore: row.niche_intent_score ?? undefined,
+    leadScoreFinal: row.lead_score_final ?? undefined,
+    leadStrategyType: (row.lead_strategy_type as Lead['leadStrategyType']) || undefined,
+    messageVariant: (row.message_variant as Lead['messageVariant']) || undefined,
     prioridade: row.prioridade as Lead['prioridade'],
     status: row.status as Lead['status'],
     ultimoContato: row.ultimo_contato || undefined,
@@ -119,6 +138,9 @@ export function rowToLead(row: LeadRow): Lead {
     mensagemProspeccao: row.mensagem_prospeccao || undefined,
     websiteAnalysis: row.website_analysis || undefined,
   };
+
+  const enriched = enrichLeadStrategy(lead);
+  return enriched;
 }
 
 export function settingsToConfig(row: AppSettingsRow): AppConfig {

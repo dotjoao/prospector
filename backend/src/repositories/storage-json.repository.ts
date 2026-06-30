@@ -1,4 +1,5 @@
 ﻿import { readStorageJson, writeStorageJson, STORAGE_LEADS_PATH, STORAGE_CONFIG_PATH } from '../lib/supabase-storage.js';
+import { enrichLeadStrategy, getLeadSortScore } from '../lib/strategy-engine.js';
 import { Lead, AppConfig, LeadFilters, UpdateLeadPayload } from '../types/index.js';
 
 const DEFAULT_CONFIG: AppConfig = {
@@ -13,7 +14,9 @@ const DEFAULT_CONFIG: AppConfig = {
 export class StorageLeadsRepository {
   async getAll(): Promise<Lead[]> {
     const leads = await readStorageJson<Lead[]>(STORAGE_LEADS_PATH, []);
-    return leads.sort((a, b) => b.score - a.score);
+    return leads
+      .map(enrichLeadStrategy)
+      .sort((a, b) => getLeadSortScore(b) - getLeadSortScore(a));
   }
 
   async getById(id: string): Promise<Lead | undefined> {
@@ -80,7 +83,7 @@ export class StorageLeadsRepository {
       leads = leads.filter((l) => !l.website || l.website.trim() === '');
     }
     if (filters.scoreMinimo !== undefined) {
-      leads = leads.filter((l) => l.score >= filters.scoreMinimo!);
+      leads = leads.filter((l) => getLeadSortScore(l) >= filters.scoreMinimo!);
     }
     if (filters.prioridade) {
       leads = leads.filter((l) => l.prioridade === filters.prioridade);

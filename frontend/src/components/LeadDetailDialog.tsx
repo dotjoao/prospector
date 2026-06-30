@@ -35,6 +35,9 @@ import {
   cn,
   getPrioridadeColor,
   getStatusColor,
+  getLeadPriorityScore,
+  getStrategyTypeBadgeColor,
+  getStrategyTypeLabel,
 } from '@/lib/utils';
 
 interface LeadDetailDialogProps {
@@ -138,9 +141,25 @@ export function LeadDetailDialog({ lead, open, onOpenChange, onUpdate }: LeadDet
               {displayLead.prioridade}
             </Badge>
             <Badge className={getStatusColor(displayLead.status)}>{displayLead.status}</Badge>
-            <span className="text-sm">Score: <strong>{displayLead.score}</strong></span>
+            <span className="text-sm">
+              Score final: <strong>{getLeadPriorityScore(displayLead)}</strong>
+              {' · '}
+              Site: <strong>{displayLead.siteScore ?? displayLead.score}</strong>
+            </span>
           </DialogDescription>
         </DialogHeader>
+
+        <div className="rounded-lg border p-3 grid grid-cols-2 gap-2 text-xs">
+          <span>Cidade: <strong>{displayLead.cityTier ?? '—'}</strong></span>
+          <span>Intenção nicho: <strong>{displayLead.nicheIntentScore ?? '—'}</strong></span>
+          <span>
+            Estratégia:{' '}
+            <Badge className={cn('border text-[10px] ml-1', getStrategyTypeBadgeColor(displayLead.leadStrategyType))}>
+              {getStrategyTypeLabel(displayLead.leadStrategyType)}
+            </Badge>
+          </span>
+          <span>Variante A/B: <strong>{displayLead.messageVariant ?? '—'}</strong></span>
+        </div>
 
         <div className="grid gap-4">
           <div className="grid grid-cols-2 gap-3 text-sm">

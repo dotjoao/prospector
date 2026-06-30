@@ -91,3 +91,50 @@ export function getStatusColor(status: string): string {
       return 'bg-gray-500/20 text-gray-400';
   }
 }
+
+export function getLeadPriorityScore(lead: { leadScoreFinal?: number; score: number }): number {
+  return lead.leadScoreFinal ?? lead.score;
+}
+
+export function getStrategyPriorityLabel(score: number): 'quente' | 'morno' | 'frio' {
+  if (score >= 160) return 'quente';
+  if (score >= 120) return 'morno';
+  return 'frio';
+}
+
+export function getStrategyPriorityColor(score: number): string {
+  switch (getStrategyPriorityLabel(score)) {
+    case 'quente':
+      return 'border-red-500/40 bg-red-500/10';
+    case 'morno':
+      return 'border-yellow-500/40 bg-yellow-500/10';
+    default:
+      return 'border-green-500/40 bg-green-500/10';
+  }
+}
+
+export function getStrategyTypeLabel(type?: string): string {
+  switch (type) {
+    case 'DIRECT':
+      return 'Direta';
+    case 'INDIRECT':
+      return 'Indireta';
+    case 'AUTHORITY':
+      return 'Autoridade';
+    default:
+      return '—';
+  }
+}
+
+export function getStrategyTypeBadgeColor(type?: string): string {
+  switch (type) {
+    case 'DIRECT':
+      return 'bg-red-500/20 text-red-400 border-red-500/30';
+    case 'INDIRECT':
+      return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
+    case 'AUTHORITY':
+      return 'bg-green-500/20 text-green-400 border-green-500/30';
+    default:
+      return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+  }
+}

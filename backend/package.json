@@ -12,7 +12,9 @@
     "start": "tsx src/index.ts",
     "migrate:supabase": "tsx scripts/migrate-json-to-supabase.ts",
     "setup:supabase": "tsx scripts/setup-supabase.ts",
-    "apply:schema": "tsx scripts/apply-schema.ts"
+    "apply:schema": "tsx scripts/apply-schema.ts",
+    "apply:strategy": "tsx scripts/apply-strategy-migration.ts",
+    "backfill:strategy": "tsx scripts/backfill-strategy.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1",

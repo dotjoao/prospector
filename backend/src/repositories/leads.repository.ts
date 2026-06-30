@@ -1,9 +1,14 @@
 ﻿import { getSupabase, leadToRow, rowToLead, LeadRow } from '../lib/supabase.js';
 import { getDbPool, isDbDirectAvailable } from '../lib/db.js';
+import { getLeadSortScore } from '../lib/strategy-engine.js';
 import { Lead, LeadFilters, UpdateLeadPayload, DashboardStats, PaginatedLeads } from '../types/index.js';
 
 const LIST_COLUMNS =
-  'id,empresa,categoria,endereco,cidade,estado,telefone,website,nota,avaliacoes,google_maps_url,data_coleta,score,prioridade,status,ultimo_contato,proximo_follow_up,observacoes,mensagem_prospeccao,created_at,updated_at';
+  'id,empresa,categoria,endereco,cidade,estado,telefone,website,nota,avaliacoes,google_maps_url,data_coleta,score,site_score,city_tier,niche_intent_score,lead_score_final,lead_strategy_type,message_variant,prioridade,status,ultimo_contato,proximo_follow_up,observacoes,mensagem_prospeccao,created_at,updated_at';
+
+function sortLeadsByPriority(leads: Lead[]): Lead[] {
+  return [...leads].sort((a, b) => getLeadSortScore(b) - getLeadSortScore(a));
+}
 
 const CONTACTED_STATUSES = [
   'Mensagem Enviada',
@@ -20,10 +25,10 @@ export class SupabaseLeadsRepository {
     const { data, error } = await getSupabase()
       .from(this.table)
       .select('*')
-      .order('score', { ascending: false });
+      .order('lead_score_final', { ascending: false, nullsFirst: false });
 
     if (error) throw new Error(`[Supabase] Erro ao listar leads: ${error.message}`);
-    return (data as LeadRow[]).map(rowToLead);
+    return sortLeadsByPriority((data as LeadRow[]).map(rowToLead));
   }
 
   async filterPaginated(filters: LeadFilters): Promise<PaginatedLeads> {
@@ -41,18 +46,20 @@ export class SupabaseLeadsRepository {
     if (filters.categoria) query = query.ilike('categoria', `%${filters.categoria}%`);
     if (filters.possuiSite === true) query = query.neq('website', '');
     if (filters.possuiSite === false) query = query.or('website.is.null,website.eq.');
-    if (filters.scoreMinimo !== undefined) query = query.gte('score', filters.scoreMinimo);
+    if (filters.scoreMinimo !== undefined) {
+      query = query.gte('lead_score_final', filters.scoreMinimo);
+    }
     if (filters.prioridade) query = query.eq('prioridade', filters.prioridade);
     if (filters.status) query = query.eq('status', filters.status);
 
     const { data, error, count } = await query
-      .order('score', { ascending: false })
+      .order('lead_score_final', { ascending: false, nullsFirst: false })
       .range(from, to);
 
     if (error) throw new Error(`[Supabase] Erro ao filtrar leads: ${error.message}`);
 
     return {
-      leads: (data as LeadRow[]).map(rowToLead),
+      leads: sortLeadsByPriority((data as LeadRow[]).map(rowToLead)),
       total: count ?? 0,
       page,
       limit,
@@ -151,13 +158,15 @@ export class SupabaseLeadsRepository {
       .from(this.table)
       .select('*')
       .ilike('categoria', categoria)
-      .order('score', { ascending: false });
+      .order('lead_score_final', { ascending: false, nullsFirst: false });
 
     if (error) throw new Error(`[Supabase] Erro ao buscar por categoria: ${error.message}`);
 
-    return (data as LeadRow[])
-      .map(rowToLead)
-      .filter((l) => l.categoria.toLowerCase() === target);
+    return sortLeadsByPriority(
+      (data as LeadRow[])
+        .map(rowToLead)
+        .filter((l) => l.categoria.toLowerCase() === target)
+    );
   }
 
   async getDashboardStats(): Promise<DashboardStats> {
@@ -179,6 +188,9 @@ export class SupabaseLeadsRepository {
       semSite: semSite.count ?? 0,
       contatados: contatados.count ?? 0,
       fechados: fechados.count ?? 0,
+      leadsQuentes: 0,
+      leadsMornos: 0,
+      leadsFrios: 0,
     };
   }
 

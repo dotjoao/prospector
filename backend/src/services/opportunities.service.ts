@@ -4,7 +4,8 @@ import { websiteAnalyzerService } from './website-analyzer.service.js';
 import { screenshotService } from './screenshot.service.js';
 import { leadsService } from './leads.service.js';
 import { configService } from './config.service.js';
-import { calculateScore, getPrioridade, extractStateFromAddress } from '../utils/score.js';
+import { calculateScore, extractStateFromAddress } from '../utils/score.js';
+import { applyStrategyToNewLead, getLeadSortScore } from '../lib/strategy-engine.js';
 import { Lead, SearchParams, FindOpportunitiesResult } from '../types/index.js';
 
 const ANALYSIS_CONCURRENCY = 5;
@@ -57,7 +58,7 @@ export class OpportunitiesService {
     });
 
     const validLeads = leads.filter((l): l is Lead => l !== null);
-    validLeads.sort((a, b) => b.score - a.score);
+    validLeads.sort((a, b) => getLeadSortScore(b) - getLeadSortScore(a));
 
     const inserted = await leadsService.addLeads(validLeads);
     const matchingState = countLeadsMatchingState(validLeads, params);
@@ -126,7 +127,7 @@ export class OpportunitiesService {
       params.categoria ||
       (place.types?.[0]?.replace(/_/g, ' ') ?? 'Geral');
 
-    return {
+    const baseLead = {
       id: uuidv4(),
       empresa: place.name,
       categoria,
@@ -140,10 +141,11 @@ export class OpportunitiesService {
       googleMapsUrl: place.url || `https://www.google.com/maps/place/?q=place_id:${place.place_id}`,
       dataColeta: new Date().toISOString(),
       score,
-      prioridade: getPrioridade(score),
-      status: 'Nao Contatado',
+      status: 'Nao Contatado' as const,
       websiteAnalysis: analysis,
     };
+
+    return applyStrategyToNewLead(baseLead);
   }
 }
 

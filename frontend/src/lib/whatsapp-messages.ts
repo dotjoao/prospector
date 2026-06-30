@@ -28,6 +28,10 @@ export const WHATSAPP_MESSAGE_OPTIONS: WhatsAppMessageOption[] = [
 ];
 
 function buildPitchFromLead(lead: Lead): string {
+  if (lead.mensagemProspeccao?.trim()) {
+    return lead.mensagemProspeccao.trim();
+  }
+
   const issues: string[] = [];
 
   if (!lead.website) {

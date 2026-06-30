@@ -7,7 +7,7 @@ import { LeadDetailDialog } from '@/components/LeadDetailDialog';
 import { ContactPhone } from '@/components/ContactPhone';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { Lead } from '@/types';
-import { cn, getPrioridadeColor, getStatusColor } from '@/lib/utils';
+import { cn, getPrioridadeColor, getStatusColor, getLeadPriorityScore, getStrategyPriorityColor, getStrategyTypeBadgeColor, getStrategyTypeLabel } from '@/lib/utils';
 
 interface LeadTableProps {
   leads: Lead[];
@@ -93,12 +93,15 @@ export function LeadTable({
             </p>
           ) : (
             <div className="space-y-2">
-              {leads.map((lead, index) => (
+              {leads.map((lead, index) => {
+                const priorityScore = getLeadPriorityScore(lead);
+                return (
                 <div
                   key={lead.id}
                   className={cn(
                     'flex items-center justify-between p-3 rounded-lg border transition-colors hover:bg-accent/50 cursor-pointer',
-                    highlightTop && index < highlightTop && 'border-primary/30 bg-primary/5'
+                    highlightTop && index < highlightTop && 'border-primary/30 bg-primary/5',
+                    getStrategyPriorityColor(priorityScore)
                   )}
                   onClick={() => openLead(lead)}
                 >
@@ -113,6 +116,11 @@ export function LeadTable({
                       <Badge className={cn('border text-xs', getPrioridadeColor(lead.prioridade))}>
                         {lead.prioridade}
                       </Badge>
+                      {lead.leadStrategyType && (
+                        <Badge className={cn('border text-xs', getStrategyTypeBadgeColor(lead.leadStrategyType))}>
+                          {getStrategyTypeLabel(lead.leadStrategyType)}
+                        </Badge>
+                      )}
                       <Badge className={cn('text-xs', getStatusColor(lead.status))}>
                         {lead.status}
                       </Badge>
@@ -137,15 +145,17 @@ export function LeadTable({
                   </div>
                   <div className="flex items-center gap-3 ml-4">
                     <div className="text-right">
-                      <div className="text-lg font-bold text-primary">{lead.score}</div>
-                      <div className="text-xs text-muted-foreground">score</div>
+                      <div className="text-lg font-bold text-primary">{priorityScore}</div>
+                      <div className="text-xs text-muted-foreground">score final</div>
+                      <div className="text-[10px] text-muted-foreground">site: {lead.siteScore ?? lead.score}</div>
                     </div>
                     <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); openLead(lead); }}>
                       <Eye className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
-              ))}
+              );
+              })}
             </div>
           )}
         </CardContent>
