@@ -5,7 +5,7 @@ import { exportService } from '../services/export.service.js';
 import { configService } from '../services/config.service.js';
 import { authService } from '../services/auth.service.js';
 import { generateProspectionMessage } from '../utils/message.js';
-import { getPersistenceMode, getStorageLabel } from '../lib/persistence.js';
+import { getPersistenceMode, getStorageLabel, getLastPersistenceError } from '../lib/persistence.js';
 import { LeadFilters, SearchParams } from '../types/index.js';
 
 const router = Router();
@@ -74,12 +74,15 @@ router.post('/auth/logout', async (req: Request, res: Response) => {
 
 router.get('/health', (_req: Request, res: Response) => {
   const mode = getPersistenceMode();
+  const persistenceError = getLastPersistenceError();
   res.json({
     status: 'ok',
     service: 'LeadHunter API',
     storage: getStorageLabel(mode),
     persistenceMode: mode,
     supabaseConfigured: !!(process.env.SUPABASE_URL && (process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY)),
+    dbPasswordConfigured: !!process.env.SUPABASE_DB_PASSWORD,
+    ...(persistenceError ? { persistenceError } : {}),
   });
 });
 

@@ -15,6 +15,7 @@ export type PersistenceMode = 'json' | 'supabase-db' | 'supabase-storage';
 
 let mode: PersistenceMode = 'json';
 let initialized = false;
+let lastPersistenceError: string | null = null;
 
 const DEFAULT_CONFIG: AppConfig = {
   googlePlacesApiKey: '',
@@ -39,7 +40,12 @@ async function migrateSourcesToDb(): Promise<void> {
     .eq('id', 1)
     .maybeSingle();
 
-  if (settingsError && !settingsError.message.includes('does not exist')) {
+  const importFlagMissing =
+    settingsError &&
+    (settingsError.message.includes('does not exist') ||
+      settingsError.message.includes('leads_file_import_done'));
+
+  if (settingsError && !importFlagMissing) {
     throw new Error(`[Supabase] Erro ao ler flag de import: ${settingsError.message}`);
   }
 
@@ -51,16 +57,18 @@ async function migrateSourcesToDb(): Promise<void> {
 
   const dbCount = await supabaseLeadsRepository.countAll();
   if (dbCount > 0) {
-    await getSupabase()
-      .from('app_settings')
-      .update({ leads_file_import_done: true })
-      .eq('id', 1);
+    if (!importFlagMissing) {
+      await getSupabase()
+        .from('app_settings')
+        .update({ leads_file_import_done: true })
+        .eq('id', 1);
+    }
     console.log(`[Persistência] PostgreSQL já tem ${dbCount} leads`);
     return;
   }
 
-  const storageLeads = await readStorageJson<Lead[]>(STORAGE_LEADS_PATH, []);
-  const localLeads = await readJsonFile<Lead[]>(LEADS_FILE, []);
+  const storageLeads = await readStorageJson<Lead[]>(STORAGE_LEADS_PATH, []).catch(() => [] as Lead[]);
+  const localLeads = await readJsonFile<Lead[]>(LEADS_FILE, []).catch(() => [] as Lead[]);
   const leads = storageLeads.length >= localLeads.length ? storageLeads : localLeads;
 
   if (leads.length > 0) {
@@ -76,13 +84,19 @@ async function migrateSourcesToDb(): Promise<void> {
     console.log(`[Persistência] ${leads.length} leads migrados → PostgreSQL`);
   }
 
-  await getSupabase()
-    .from('app_settings')
-    .update({ leads_file_import_done: true })
-    .eq('id', 1);
+  if (!importFlagMissing) {
+    await getSupabase()
+      .from('app_settings')
+      .update({ leads_file_import_done: true })
+      .eq('id', 1);
+  }
 
-  const storageConfig = await readStorageJson<AppConfig | null>(STORAGE_CONFIG_PATH, null);
-  const localConfig = await readJsonFile<AppConfig>(CONFIG_FILE, DEFAULT_CONFIG);
+  const storageConfig = await readStorageJson<AppConfig | null>(STORAGE_CONFIG_PATH, null).catch(
+    () => null
+  );
+  const localConfig = await readJsonFile<AppConfig>(CONFIG_FILE, DEFAULT_CONFIG).catch(
+    () => DEFAULT_CONFIG
+  );
   const config = storageConfig?.googlePlacesApiKey ? storageConfig : localConfig;
 
   if (config.googlePlacesApiKey) {
@@ -92,6 +106,8 @@ async function migrateSourcesToDb(): Promise<void> {
 }
 
 export async function initPersistence(): Promise<PersistenceMode> {
+  lastPersistenceError = null;
+
   if (!isSupabaseConfigured()) {
     mode = 'json';
     initialized = true;
@@ -126,7 +142,8 @@ export async function initPersistence(): Promise<PersistenceMode> {
       console.log('[Persistência] Usando Supabase Storage temporariamente');
     }
   } catch (err) {
-    console.warn('[Persistência] Falha no Supabase, usando JSON local:', (err as Error).message);
+    lastPersistenceError = (err as Error).message;
+    console.warn('[Persistência] Falha no Supabase, usando JSON local:', lastPersistenceError);
     mode = 'json';
   }
 
@@ -151,4 +168,8 @@ export function getStorageLabel(modeOverride?: PersistenceMode): string {
   const m = modeOverride ?? mode;
   if (m === 'supabase-db' || m === 'supabase-storage') return 'supabase';
   return 'json';
+}
+
+export function getLastPersistenceError(): string | null {
+  return lastPersistenceError;
 }
