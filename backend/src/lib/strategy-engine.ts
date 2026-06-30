@@ -1,5 +1,6 @@
 ﻿import { Lead, Prioridade } from '../types/index.js';
 import { calculateScore } from '../utils/score.js';
+import { getDigitalPresence, isInstagramOnlyLead } from './lead-presence.js';
 
 export type CityTier = 'TIER_1' | 'TIER_2' | 'TIER_3';
 export type LeadStrategyType = 'DIRECT' | 'INDIRECT' | 'AUTHORITY';
@@ -162,8 +163,20 @@ export function buildStrategyProfile(input: {
 
 function getSiteIssues(lead: Lead): string[] {
   const issues: string[] = [];
-  if (!lead.website) {
-    issues.push('ainda não possui um site profissional');
+  const hasPhone = !!lead.telefone?.trim();
+  const presence = getDigitalPresence(lead);
+
+  if (presence === 'none') {
+    if (hasPhone) {
+      issues.push('não possui site profissional — o contato parece ser apenas por telefone/WhatsApp');
+    } else {
+      issues.push('ainda não possui um site profissional nem canal digital claro de contato');
+    }
+  } else if (presence === 'instagram' || isInstagramOnlyLead(lead)) {
+    issues.push('usa apenas o Instagram como presença online, sem um site profissional');
+    if (!hasPhone) {
+      issues.push('não há um canal direto de contato além das redes sociais');
+    }
   } else if (
     lead.websiteAnalysis?.siteStatus === 'Offline' ||
     lead.websiteAnalysis?.siteStatus === 'Timeout'
@@ -172,7 +185,11 @@ function getSiteIssues(lead: Lead): string[] {
   } else {
     if (!lead.websiteAnalysis?.hasHttps) issues.push('o site não usa HTTPS');
     if (!lead.websiteAnalysis?.isResponsive) issues.push('o site não funciona bem no celular');
-    if (!lead.websiteAnalysis?.hasWhatsapp) issues.push('não há WhatsApp no site para facilitar contato');
+    if (!lead.websiteAnalysis?.hasWhatsapp && hasPhone) {
+      issues.push('o site não integra WhatsApp para facilitar o contato');
+    } else if (!lead.websiteAnalysis?.hasWhatsapp) {
+      issues.push('não há WhatsApp no site para facilitar contato');
+    }
     if (!lead.websiteAnalysis?.hasForm) issues.push('não há formulário de captura de leads');
   }
   return issues;

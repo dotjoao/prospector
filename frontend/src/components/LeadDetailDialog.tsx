@@ -11,6 +11,7 @@ import {
   Brain,
   BarChart3,
   ClipboardList,
+  Instagram,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -18,7 +19,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { ContactPhone } from '@/components/ContactPhone';
+import { InstagramButton } from '@/components/InstagramButton';
 import { WhatsAppMenu } from '@/components/WhatsAppMenu';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
 import {
   Dialog,
   DialogContent,
@@ -42,6 +45,12 @@ import {
   getStrategyTypeLabel,
   getStrategyPriorityLabel,
 } from '@/lib/utils';
+import {
+  getInstagramUrl,
+  getPresenceLabel,
+  hasProfessionalWebsite,
+  normalizeInstagramUrl,
+} from '@/lib/lead-presence';
 
 interface LeadDetailDialogProps {
   lead: Lead | null;
@@ -72,6 +81,7 @@ function Section({
 
 export function LeadDetailDialog({ lead, open, onOpenChange, onUpdate }: LeadDetailDialogProps) {
   const [displayLead, setDisplayLead] = useState<Lead | null>(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
   const [status, setStatus] = useState<LeadStatus>('Nao Contatado');
   const [ultimoContato, setUltimoContato] = useState('');
   const [proximoFollowUp, setProximoFollowUp] = useState('');
@@ -83,7 +93,22 @@ export function LeadDetailDialog({ lead, open, onOpenChange, onUpdate }: LeadDet
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   useEffect(() => {
-    if (!lead || !open) return;
+    if (!lead || !open) {
+      if (!open) {
+        setDisplayLead(null);
+        setLoadingDetail(false);
+      }
+      return;
+    }
+
+    setDisplayLead(lead);
+    setStatus(lead.status);
+    setUltimoContato(lead.ultimoContato?.split('T')[0] || '');
+    setProximoFollowUp(lead.proximoFollowUp?.split('T')[0] || '');
+    setObservacoes(lead.observacoes || '');
+    setMensagem(lead.mensagemProspeccao || '');
+    setSaveSuccess(false);
+    setLoadingDetail(true);
 
     let cancelled = false;
     api.getLead(lead.id)
@@ -95,18 +120,13 @@ export function LeadDetailDialog({ lead, open, onOpenChange, onUpdate }: LeadDet
           setProximoFollowUp(full.proximoFollowUp?.split('T')[0] || '');
           setObservacoes(full.observacoes || '');
           setMensagem(full.mensagemProspeccao || '');
-          setSaveSuccess(false);
         }
       })
       .catch(() => {
-        if (!cancelled) {
-          setDisplayLead(lead);
-          setStatus(lead.status);
-          setUltimoContato(lead.ultimoContato?.split('T')[0] || '');
-          setProximoFollowUp(lead.proximoFollowUp?.split('T')[0] || '');
-          setObservacoes(lead.observacoes || '');
-          setMensagem(lead.mensagemProspeccao || '');
-        }
+        // mantém dados da lista
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingDetail(false);
       });
 
     return () => { cancelled = true; };
@@ -150,11 +170,13 @@ export function LeadDetailDialog({ lead, open, onOpenChange, onUpdate }: LeadDet
     setTimeout(() => setCopied(false), 2000);
   }
 
-  if (!lead || !displayLead) return null;
+  if (!lead) return null;
 
-  const analysis = displayLead.websiteAnalysis;
-  const finalScore = getLeadPriorityScore(displayLead);
+  const activeLead = displayLead ?? lead;
+  const analysis = activeLead.websiteAnalysis;
+  const finalScore = getLeadPriorityScore(activeLead);
   const tier = getStrategyPriorityLabel(finalScore);
+  const instagramUrl = getInstagramUrl(activeLead);
 
   const tierColors = {
     quente: 'from-red-500/20 to-red-500/5 border-red-500/20 text-red-400',
@@ -167,7 +189,7 @@ export function LeadDetailDialog({ lead, open, onOpenChange, onUpdate }: LeadDet
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0 gap-0 border-white/10">
         <div className={cn('px-6 pt-6 pb-4 bg-gradient-to-br border-b', tierColors[tier])}>
           <DialogHeader>
-            <DialogTitle className="text-xl pr-8">{displayLead.empresa}</DialogTitle>
+            <DialogTitle className="text-xl pr-8">{activeLead.empresa}</DialogTitle>
           </DialogHeader>
           <div className="flex items-center gap-3 mt-3 flex-wrap">
             <div className="flex items-baseline gap-1.5">
@@ -175,148 +197,192 @@ export function LeadDetailDialog({ lead, open, onOpenChange, onUpdate }: LeadDet
               <span className="text-xs opacity-70">score final</span>
             </div>
             <span className="text-muted-foreground">·</span>
-            <span className="text-sm">Site: {displayLead.siteScore ?? displayLead.score}</span>
-            {displayLead.leadStrategyType && (
-              <Badge className={cn('border', getStrategyTypeBadgeColor(displayLead.leadStrategyType))}>
-                {getStrategyTypeLabel(displayLead.leadStrategyType)}
+            <span className="text-sm">Site: {activeLead.siteScore ?? activeLead.score}</span>
+            <Badge variant="outline" className="text-xs border-white/20">
+              {getPresenceLabel(activeLead)}
+            </Badge>
+            {activeLead.leadStrategyType && (
+              <Badge className={cn('border', getStrategyTypeBadgeColor(activeLead.leadStrategyType))}>
+                {getStrategyTypeLabel(activeLead.leadStrategyType)}
               </Badge>
             )}
-            <Badge className={getStatusColor(displayLead.status)}>{displayLead.status}</Badge>
+            <Badge className={getStatusColor(activeLead.status)}>{activeLead.status}</Badge>
           </div>
         </div>
 
-        <div className="p-6 space-y-4">
-          <Section icon={Brain} title="Estratégia">
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div>
-                <span className="text-muted-foreground text-xs">Cidade (tier)</span>
-                <p className="font-medium">{displayLead.cityTier ?? '—'}</p>
+        {loadingDetail ? (
+          <div className="py-12">
+            <LoadingSpinner text="Carregando detalhes..." />
+          </div>
+        ) : (
+          <div className="p-6 space-y-4">
+            <Section icon={Brain} title="Estratégia">
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <span className="text-muted-foreground text-xs">Cidade (tier)</span>
+                  <p className="font-medium">{activeLead.cityTier ?? '—'}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground text-xs">Intenção do nicho</span>
+                  <p className="font-medium">{activeLead.nicheIntentScore ?? '—'}</p>
+                </div>
+                <div className="col-span-2">
+                  <span className="text-muted-foreground text-xs">Variante A/B</span>
+                  <p className="font-medium font-mono text-xs">{activeLead.messageVariant ?? '—'}</p>
+                </div>
               </div>
-              <div>
-                <span className="text-muted-foreground text-xs">Intenção do nicho</span>
-                <p className="font-medium">{displayLead.nicheIntentScore ?? '—'}</p>
-              </div>
-              <div className="col-span-2">
-                <span className="text-muted-foreground text-xs">Variante A/B</span>
-                <p className="font-medium font-mono text-xs">{displayLead.messageVariant ?? '—'}</p>
-              </div>
-            </div>
-          </Section>
+            </Section>
 
-          <Section icon={BarChart3} title="Dados do lead">
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
-                <span>{displayLead.cidade}, {displayLead.estado}</span>
+            <Section icon={BarChart3} title="Dados do lead">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <span>{activeLead.endereco || `${activeLead.cidade}, ${activeLead.estado}`}</span>
+                </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-muted-foreground text-xs shrink-0">Contato:</span>
+                  {activeLead.telefone ? (
+                    <ContactPhone phone={activeLead.telefone} lead={activeLead} size="md" message={mensagem} />
+                  ) : (
+                    <span className="text-muted-foreground">Sem telefone</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 col-span-1 sm:col-span-2 flex-wrap">
+                  <Globe className="h-4 w-4 text-muted-foreground shrink-0" />
+                  {hasProfessionalWebsite(activeLead) ? (
+                    <a
+                      href={activeLead.website}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline truncate"
+                    >
+                      {activeLead.website}
+                    </a>
+                  ) : instagramUrl ? (
+                    <a
+                      href={normalizeInstagramUrl(instagramUrl)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-pink-400 hover:underline truncate flex items-center gap-1"
+                    >
+                      <Instagram className="h-3.5 w-3.5 shrink-0" />
+                      {instagramUrl}
+                    </a>
+                  ) : (
+                    <span className="text-muted-foreground">Sem site · {getPresenceLabel(activeLead)}</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Star className="h-4 w-4 text-amber-400 shrink-0" />
+                  <span>{activeLead.nota} ({activeLead.avaliacoes} avaliações)</span>
+                </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-muted-foreground text-xs">Categoria:</span>
+                  <span className="font-medium">{activeLead.categoria}</span>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <ContactPhone phone={displayLead.telefone} lead={displayLead} size="md" message={mensagem} />
-              </div>
-              <div className="flex items-center gap-2 col-span-2">
-                <Globe className="h-4 w-4 text-muted-foreground shrink-0" />
-                {displayLead.website ? (
-                  <a href={displayLead.website} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate">
-                    {displayLead.website}
-                  </a>
-                ) : (
-                  <span className="text-muted-foreground">Sem site</span>
+
+              <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-white/[0.06]">
+                {activeLead.telefone && (
+                  <WhatsAppMenu
+                    phone={activeLead.telefone}
+                    lead={activeLead}
+                    pitchMessage={mensagem}
+                    size="md"
+                    showPhone={false}
+                  />
                 )}
+                <InstagramButton lead={activeLead} size="md" />
               </div>
-              <div className="flex items-center gap-2">
-                <Star className="h-4 w-4 text-amber-400 shrink-0" />
-                <span>{displayLead.nota} ({displayLead.avaliacoes} avaliações)</span>
-              </div>
-            </div>
 
-            {analysis && (
-              <div className="mt-4 pt-4 border-t border-white/[0.06] grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
-                <span>Status: <strong>{analysis.siteStatus}</strong></span>
-                <span>HTTPS: <strong>{analysis.hasHttps ? 'Sim' : 'Não'}</strong></span>
-                <span>Mobile: <strong>{analysis.isResponsive ? 'Sim' : 'Não'}</strong></span>
-                <span>WhatsApp: <strong>{analysis.hasWhatsapp ? 'Sim' : 'Não'}</strong></span>
-                <span>Formulário: <strong>{analysis.hasForm ? 'Sim' : 'Não'}</strong></span>
-              </div>
-            )}
-          </Section>
+              {analysis && (
+                <div className="mt-4 pt-4 border-t border-white/[0.06] grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+                  <span>Presença: <strong>{analysis.siteStatus}</strong></span>
+                  {hasProfessionalWebsite(activeLead) && (
+                    <>
+                      <span>HTTPS: <strong>{analysis.hasHttps ? 'Sim' : 'Não'}</strong></span>
+                      <span>Mobile: <strong>{analysis.isResponsive ? 'Sim' : 'Não'}</strong></span>
+                      <span>WhatsApp no site: <strong>{analysis.hasWhatsapp ? 'Sim' : 'Não'}</strong></span>
+                      <span>Formulário: <strong>{analysis.hasForm ? 'Sim' : 'Não'}</strong></span>
+                    </>
+                  )}
+                  {(analysis.hasInstagram || instagramUrl) && (
+                    <span>Instagram: <strong>Sim</strong></span>
+                  )}
+                </div>
+              )}
+            </Section>
 
-          <Section icon={ClipboardList} title="CRM">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Status</Label>
-                <Select value={status} onValueChange={(v) => setStatus(v as LeadStatus)}>
-                  <SelectTrigger className="h-9 bg-background/50">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {LEAD_STATUSES.map((s) => (
-                      <SelectItem key={s} value={s}>{s}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            <Section icon={ClipboardList} title="CRM">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Status</Label>
+                  <Select value={status} onValueChange={(v) => setStatus(v as LeadStatus)}>
+                    <SelectTrigger className="h-9 bg-background/50">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {LEAD_STATUSES.map((s) => (
+                        <SelectItem key={s} value={s}>{s}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Último contato</Label>
+                  <Input type="date" value={ultimoContato} onChange={(e) => setUltimoContato(e.target.value)} className="h-9 bg-background/50" />
+                </div>
+                <div className="space-y-1.5 col-span-2 sm:col-span-1">
+                  <Label className="text-xs">Próximo follow-up</Label>
+                  <Input type="date" value={proximoFollowUp} onChange={(e) => setProximoFollowUp(e.target.value)} className="h-9 bg-background/50" />
+                </div>
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Último contato</Label>
-                <Input type="date" value={ultimoContato} onChange={(e) => setUltimoContato(e.target.value)} className="h-9 bg-background/50" />
+              <div className="space-y-1.5 mt-3">
+                <Label className="text-xs">Observações</Label>
+                <Textarea
+                  value={observacoes}
+                  onChange={(e) => setObservacoes(e.target.value)}
+                  placeholder="Anotações..."
+                  rows={2}
+                  className="bg-background/50 resize-none"
+                />
               </div>
-              <div className="space-y-1.5 col-span-2 sm:col-span-1">
-                <Label className="text-xs">Próximo follow-up</Label>
-                <Input type="date" value={proximoFollowUp} onChange={(e) => setProximoFollowUp(e.target.value)} className="h-9 bg-background/50" />
-              </div>
-            </div>
-            <div className="space-y-1.5 mt-3">
-              <Label className="text-xs">Observações</Label>
-              <Textarea
-                value={observacoes}
-                onChange={(e) => setObservacoes(e.target.value)}
-                placeholder="Anotações..."
-                rows={2}
-                className="bg-background/50 resize-none"
-              />
-            </div>
-          </Section>
+            </Section>
 
-          <Section icon={MessageSquare} title="WhatsApp">
-            <div className="flex items-center justify-between gap-3 mb-3">
-              <p className="text-xs text-muted-foreground">
-                1. Saudação → 2. Pitch → 3. Follow-up
+            <Section icon={MessageSquare} title="Mensagem de prospecção">
+              <div className="flex gap-2 mb-2">
+                <Button variant="outline" size="sm" onClick={handleCopy} disabled={!mensagem.trim()}>
+                  {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                  Copiar
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleGenerateMessage} disabled={loadingMessage}>
+                  {loadingMessage ? 'Gerando...' : 'Gerar pitch'}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground mb-2">
+                WhatsApp: 1. Saudação → aguarde → 2. Pitch (texto abaixo) → 3. Follow-up
               </p>
-              <WhatsAppMenu
-                phone={displayLead.telefone}
-                lead={displayLead}
-                pitchMessage={mensagem}
-                size="md"
-                showPhone={false}
+              <Textarea
+                value={mensagem}
+                onChange={(e) => setMensagem(e.target.value)}
+                placeholder="Mensagem 2 — pitch personalizado conforme presença digital do lead"
+                rows={6}
+                className="bg-background/50 text-sm resize-none"
               />
-            </div>
-            <div className="flex gap-2 mb-2">
-              <Button variant="outline" size="sm" onClick={handleCopy} disabled={!mensagem.trim()}>
-                {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-                Copiar
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleGenerateMessage} disabled={loadingMessage}>
-                {loadingMessage ? 'Gerando...' : 'Gerar pitch'}
-              </Button>
-            </div>
-            <Textarea
-              value={mensagem}
-              onChange={(e) => setMensagem(e.target.value)}
-              placeholder="Mensagem 2 — pitch personalizado"
-              rows={6}
-              className="bg-background/50 text-sm resize-none"
-            />
-          </Section>
+            </Section>
 
-          <div className="flex gap-2 pt-2">
-            <Button onClick={handleSave} disabled={saving} className="flex-1">
-              {saving ? 'Salvando...' : saveSuccess ? 'Salvo!' : 'Salvar alterações'}
-            </Button>
-            <Button variant="outline" asChild>
-              <a href={displayLead.googleMapsUrl} target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="h-4 w-4" />
-              </a>
-            </Button>
+            <div className="flex gap-2 pt-2">
+              <Button onClick={handleSave} disabled={saving} className="flex-1">
+                {saving ? 'Salvando...' : saveSuccess ? 'Salvo!' : 'Salvar alterações'}
+              </Button>
+              <Button variant="outline" asChild>
+                <a href={activeLead.googleMapsUrl} target="_blank" rel="noopener noreferrer" title="Google Maps">
+                  <ExternalLink className="h-4 w-4" />
+                </a>
+              </Button>
+            </div>
           </div>
-        </div>
+        )}
       </DialogContent>
     </Dialog>
   );

@@ -11,11 +11,13 @@ export function calculateScore(params: {
 }): number {
   let score = 0;
 
-  if (!params.website || params.website.trim() === '') {
+  if (!params.website || params.website.trim() === '' || params.siteStatus === 'Instagram') {
     score += 40;
   }
 
-  if (params.siteStatus === 'Offline' || params.siteStatus === 'Timeout') {
+  if (params.siteStatus === 'Instagram') {
+    // Instagram não substitui site profissional — pontua como oportunidade
+  } else if (params.siteStatus === 'Offline' || params.siteStatus === 'Timeout') {
     score += 30;
   }
 

@@ -1,5 +1,6 @@
 ﻿import { Lead } from '@/types';
 import { getDefaultWhatsAppMessage, getTimeGreeting } from '@/lib/utils';
+import { getDigitalPresence, hasProfessionalWebsite } from '@/lib/lead-presence';
 
 export type WhatsAppMessageType = 'saudacao' | 'pitch' | 'followup';
 
@@ -33,15 +34,23 @@ function buildPitchFromLead(lead: Lead): string {
   }
 
   const issues: string[] = [];
+  const hasPhone = !!lead.telefone?.trim();
+  const presence = getDigitalPresence(lead);
 
-  if (!lead.website) {
-    issues.push('sua empresa ainda não possui um site profissional');
+  if (presence === 'none') {
+    if (hasPhone) {
+      issues.push('não possui site profissional — o contato parece ser apenas por telefone/WhatsApp');
+    } else {
+      issues.push('sua empresa ainda não possui um site profissional');
+    }
+  } else if (presence === 'instagram') {
+    issues.push('usa apenas o Instagram como presença online, sem um site profissional');
   } else if (
     lead.websiteAnalysis?.siteStatus === 'Offline' ||
     lead.websiteAnalysis?.siteStatus === 'Timeout'
   ) {
     issues.push('o site da sua empresa está fora do ar');
-  } else {
+  } else if (hasProfessionalWebsite(lead)) {
     if (!lead.websiteAnalysis?.hasHttps) {
       issues.push('o site não utiliza conexão segura (HTTPS)');
     }
@@ -49,7 +58,7 @@ function buildPitchFromLead(lead: Lead): string {
       issues.push('o site não está otimizado para celular');
     }
     if (!lead.websiteAnalysis?.hasWhatsapp) {
-      issues.push('não há integração com WhatsApp para facilitar o contato');
+      issues.push('não há integração com WhatsApp no site para facilitar o contato');
     }
     if (!lead.websiteAnalysis?.hasForm) {
       issues.push('não há formulário de contato no site');

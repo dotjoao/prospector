@@ -1,6 +1,7 @@
 ﻿import axios from 'axios';
 import * as cheerio from 'cheerio';
 import { WebsiteAnalysis, SiteStatus } from '../types/index.js';
+import { isInstagramUrl } from '../lib/lead-presence.js';
 
 const TIMEOUT_MS = 6000;
 
@@ -20,6 +21,19 @@ export class WebsiteAnalyzerService {
     let url = website.trim();
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
       url = `https://${url}`;
+    }
+
+    if (isInstagramUrl(url)) {
+      console.log(`[Analyzer] ${url} - Perfil Instagram (sem site profissional)`);
+      return {
+        siteStatus: 'Instagram',
+        hasHttps: true,
+        isResponsive: false,
+        hasWhatsapp: false,
+        hasForm: false,
+        hasInstagram: true,
+        analyzedAt: new Date().toISOString(),
+      };
     }
 
     console.log(`[Analyzer] Analisando: ${url}`);

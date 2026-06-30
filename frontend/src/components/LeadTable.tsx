@@ -1,9 +1,10 @@
 ﻿import { useState } from 'react';
-import { Eye, Star, Globe, ChevronLeft, ChevronRight, MapPin } from 'lucide-react';
+import { Eye, Star, Globe, ChevronLeft, ChevronRight, MapPin, Instagram } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { LeadDetailDialog } from '@/components/LeadDetailDialog';
 import { ContactPhone } from '@/components/ContactPhone';
+import { InstagramButton } from '@/components/InstagramButton';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { Lead } from '@/types';
 import {
@@ -15,6 +16,7 @@ import {
   getStrategyTypeLabel,
   getStrategyPriorityLabel,
 } from '@/lib/utils';
+import { getPresenceLabel, getInstagramUrl } from '@/lib/lead-presence';
 
 interface LeadTableProps {
   leads: Lead[];
@@ -171,19 +173,27 @@ export function LeadTable({
                         {lead.cidade}
                       </span>
                       <span className="flex items-center gap-1">
-                        <Globe className="h-3 w-3" />
-                        {lead.website ? 'Com site' : 'Sem site'}
+                        {getInstagramUrl(lead) ? (
+                          <Instagram className="h-3 w-3 text-pink-400" />
+                        ) : (
+                          <Globe className="h-3 w-3" />
+                        )}
+                        {getPresenceLabel(lead)}
                       </span>
                       <span className="flex items-center gap-1">
                         <Star className="h-3 w-3 text-amber-400" />
                         {lead.nota} · {lead.avaliacoes} aval.
                       </span>
                       {lead.telefone ? (
-                        <span onClick={(e) => e.stopPropagation()}>
+                        <span onClick={(e) => e.stopPropagation()} className="flex items-center gap-1">
                           <ContactPhone phone={lead.telefone} lead={lead} />
+                          <InstagramButton lead={lead} />
                         </span>
                       ) : (
-                        <span>Sem telefone</span>
+                        <span onClick={(e) => e.stopPropagation()} className="flex items-center gap-1">
+                          <span>Sem telefone</span>
+                          <InstagramButton lead={lead} />
+                        </span>
                       )}
                     </div>
                   </div>
@@ -193,7 +203,8 @@ export function LeadTable({
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-9 w-9 opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="h-9 w-9 text-muted-foreground hover:text-primary"
+                      title="Ver detalhes"
                       onClick={(e) => {
                         e.stopPropagation();
                         openLead(lead);
