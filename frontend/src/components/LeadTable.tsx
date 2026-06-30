@@ -1,13 +1,20 @@
 ﻿import { useState } from 'react';
-import { Eye, Star, Globe, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Eye, Star, Globe, ChevronLeft, ChevronRight, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LeadDetailDialog } from '@/components/LeadDetailDialog';
 import { ContactPhone } from '@/components/ContactPhone';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { Lead } from '@/types';
-import { cn, getPrioridadeColor, getStatusColor, getLeadPriorityScore, getStrategyPriorityColor, getStrategyTypeBadgeColor, getStrategyTypeLabel } from '@/lib/utils';
+import {
+  cn,
+  getStatusColor,
+  getLeadPriorityScore,
+  getStrategyPriorityStrip,
+  getStrategyTypeBadgeColor,
+  getStrategyTypeLabel,
+  getStrategyPriorityLabel,
+} from '@/lib/utils';
 
 interface LeadTableProps {
   leads: Lead[];
@@ -19,6 +26,27 @@ interface LeadTableProps {
   title?: string;
   highlightTop?: number;
   onRefresh: () => void;
+}
+
+function ScoreBadge({ score }: { score: number }) {
+  const tier = getStrategyPriorityLabel(score);
+  const colors = {
+    quente: 'bg-red-500/15 text-red-400 ring-red-500/30',
+    morno: 'bg-amber-500/15 text-amber-400 ring-amber-500/30',
+    frio: 'bg-emerald-500/15 text-emerald-400 ring-emerald-500/30',
+  };
+
+  return (
+    <div
+      className={cn(
+        'flex flex-col items-center justify-center rounded-xl px-3 py-2 min-w-[4rem] ring-1',
+        colors[tier]
+      )}
+    >
+      <span className="text-xl font-bold leading-none">{score}</span>
+      <span className="text-[10px] uppercase tracking-wide opacity-80 mt-0.5">score</span>
+    </div>
+  );
 }
 
 export function LeadTable({
@@ -45,23 +73,24 @@ export function LeadTable({
 
   if (loading) {
     return (
-      <Card>
-        <CardContent className="py-12">
-          <LoadingSpinner text="Carregando leads..." />
-        </CardContent>
-      </Card>
+      <div className="glass-card py-16">
+        <LoadingSpinner text="Carregando leads..." />
+      </div>
     );
   }
 
   return (
     <>
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between gap-4">
-          <CardTitle className="text-base">
-            {title} ({displayTotal})
-          </CardTitle>
+      <div className="glass-card overflow-hidden">
+        <div className="flex items-center justify-between gap-4 px-5 py-4 border-b border-white/[0.06]">
+          <div>
+            <h3 className="font-semibold">{title}</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {displayTotal} lead{displayTotal !== 1 ? 's' : ''} · ordenados por score final
+            </p>
+          </div>
           {onPageChange && displayTotal > pageSize && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <div className="flex items-center gap-1">
               <Button
                 variant="outline"
                 size="icon"
@@ -71,8 +100,8 @@ export function LeadTable({
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <span>
-                Página {page} de {totalPages}
+              <span className="text-xs text-muted-foreground px-2 tabular-nums">
+                {page}/{totalPages}
               </span>
               <Button
                 variant="outline"
@@ -85,81 +114,100 @@ export function LeadTable({
               </Button>
             </div>
           )}
-        </CardHeader>
-        <CardContent>
-          {leads.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">
-              Nenhum lead encontrado. Use &quot;Encontrar Oportunidades&quot; para começar.
+        </div>
+
+        {leads.length === 0 ? (
+          <div className="text-center py-16 px-6">
+            <p className="text-muted-foreground">Nenhum lead encontrado.</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Use a aba Prospectar para buscar oportunidades.
             </p>
-          ) : (
-            <div className="space-y-2">
-              {leads.map((lead, index) => {
-                const priorityScore = getLeadPriorityScore(lead);
-                return (
+          </div>
+        ) : (
+          <div className="divide-y divide-white/[0.04]">
+            {leads.map((lead, index) => {
+              const priorityScore = getLeadPriorityScore(lead);
+              const isTop = highlightTop !== undefined && index < highlightTop;
+
+              return (
                 <div
                   key={lead.id}
                   className={cn(
-                    'flex items-center justify-between p-3 rounded-lg border transition-colors hover:bg-accent/50 cursor-pointer',
-                    highlightTop && index < highlightTop && 'border-primary/30 bg-primary/5',
-                    getStrategyPriorityColor(priorityScore)
+                    'flex items-center gap-4 px-5 py-4 transition-colors hover:bg-white/[0.02] cursor-pointer group',
+                    getStrategyPriorityStrip(priorityScore),
+                    isTop && 'bg-primary/[0.03]'
                   )}
                   onClick={() => openLead(lead)}
                 >
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0 space-y-2">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-medium truncate">{lead.empresa}</span>
-                      {highlightTop && index < highlightTop && (
-                        <Badge variant="outline" className="text-xs border-primary/50 text-primary">
-                          Top #{index + 1}
+                      <span className="font-medium truncate group-hover:text-primary transition-colors">
+                        {lead.empresa}
+                      </span>
+                      {isTop && (
+                        <Badge variant="outline" className="text-[10px] border-primary/40 text-primary px-1.5">
+                          #{index + 1}
                         </Badge>
                       )}
-                      <Badge className={cn('border text-xs', getPrioridadeColor(lead.prioridade))}>
-                        {lead.prioridade}
-                      </Badge>
                       {lead.leadStrategyType && (
-                        <Badge className={cn('border text-xs', getStrategyTypeBadgeColor(lead.leadStrategyType))}>
+                        <Badge
+                          className={cn(
+                            'border text-[10px] px-1.5',
+                            getStrategyTypeBadgeColor(lead.leadStrategyType)
+                          )}
+                        >
                           {getStrategyTypeLabel(lead.leadStrategyType)}
                         </Badge>
                       )}
-                      <Badge className={cn('text-xs', getStatusColor(lead.status))}>
+                      <Badge className={cn('text-[10px] px-1.5', getStatusColor(lead.status))}>
                         {lead.status}
                       </Badge>
                     </div>
-                    <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground flex-wrap">
-                      <span>{lead.categoria}</span>
-                      <span>{lead.cidade}</span>
-                      {lead.telefone ? (
-                        <ContactPhone phone={lead.telefone} lead={lead} />
-                      ) : (
-                        <span className="text-muted-foreground">Sem telefone</span>
-                      )}
+
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
+                      <span className="font-medium text-foreground/70">{lead.categoria}</span>
+                      <span className="flex items-center gap-1">
+                        <MapPin className="h-3 w-3" />
+                        {lead.cidade}
+                      </span>
                       <span className="flex items-center gap-1">
                         <Globe className="h-3 w-3" />
                         {lead.website ? 'Com site' : 'Sem site'}
                       </span>
                       <span className="flex items-center gap-1">
-                        <Star className="h-3 w-3 text-yellow-400" />
-                        {lead.nota} ({lead.avaliacoes})
+                        <Star className="h-3 w-3 text-amber-400" />
+                        {lead.nota} · {lead.avaliacoes} aval.
                       </span>
+                      {lead.telefone ? (
+                        <span onClick={(e) => e.stopPropagation()}>
+                          <ContactPhone phone={lead.telefone} lead={lead} />
+                        </span>
+                      ) : (
+                        <span>Sem telefone</span>
+                      )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 ml-4">
-                    <div className="text-right">
-                      <div className="text-lg font-bold text-primary">{priorityScore}</div>
-                      <div className="text-xs text-muted-foreground">score final</div>
-                      <div className="text-[10px] text-muted-foreground">site: {lead.siteScore ?? lead.score}</div>
-                    </div>
-                    <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); openLead(lead); }}>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <ScoreBadge score={priorityScore} />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-9 w-9 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openLead(lead);
+                      }}
+                    >
                       <Eye className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
               );
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+            })}
+          </div>
+        )}
+      </div>
 
       <LeadDetailDialog
         lead={selectedLead}

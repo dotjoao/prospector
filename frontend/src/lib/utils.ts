@@ -96,6 +96,17 @@ export function getLeadPriorityScore(lead: { leadScoreFinal?: number; score: num
   return lead.leadScoreFinal ?? lead.score;
 }
 
+export function getStrategyPriorityStrip(score: number): string {
+  switch (getStrategyPriorityLabel(score)) {
+    case 'quente':
+      return 'priority-strip-hot';
+    case 'morno':
+      return 'priority-strip-warm';
+    default:
+      return 'priority-strip-cold';
+  }
+}
+
 export function getStrategyPriorityLabel(score: number): 'quente' | 'morno' | 'frio' {
   if (score >= 160) return 'quente';
   if (score >= 120) return 'morno';

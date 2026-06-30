@@ -1,7 +1,6 @@
 ﻿import { useEffect, useState } from 'react';
 import { Download, FileSpreadsheet, FolderDown, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { api, resolveApiUrl } from '@/services/api';
 
@@ -72,48 +71,45 @@ export function ExportPanel({ themes, loading, onNotify }: ExportPanelProps) {
 
   if (loading) {
     return (
-      <Card>
-        <CardContent className="py-12">
-          <LoadingSpinner text="Carregando temas..." />
-        </CardContent>
-      </Card>
+      <div className="glass-card py-12">
+        <LoadingSpinner text="Carregando temas..." />
+      </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start gap-3 rounded-lg border border-blue-500/20 bg-blue-500/5 p-4 text-sm">
-        <Info className="h-5 w-5 text-blue-400 shrink-0 mt-0.5" />
+      <div className="flex items-start gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm">
+        <Info className="h-5 w-5 text-primary shrink-0 mt-0.5" />
         <div>
-          <p className="font-medium text-blue-300">Dados no Supabase · Planilhas para download</p>
-          <p className="text-muted-foreground mt-1">
-            Seus leads ficam salvos no banco de dados. As planilhas Excel são exportações locais
-            para prospecção offline — cada tema gera um arquivo separado.
+          <p className="font-medium">Exportar para Excel</p>
+          <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
+            Leads salvos no banco. Baixe planilhas por categoria para prospecção offline.
           </p>
         </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <FileSpreadsheet className="h-5 w-5 text-primary" />
+      <div className="glass-card overflow-hidden">
+        <div className="px-5 py-4 border-b border-white/[0.06]">
+          <h3 className="font-semibold flex items-center gap-2 text-sm">
+            <FileSpreadsheet className="h-4 w-4 text-primary" />
             Planilhas por tema
-          </CardTitle>
-          <CardDescription>
-            Cada busca que você faz cria um tema. Baixe a planilha do tema que quiser trabalhar.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+          </h3>
+          <p className="text-xs text-muted-foreground mt-1">
+            Cada busca cria um tema. Baixe a planilha que quiser trabalhar.
+          </p>
+        </div>
+        <div className="p-5">
           {themes.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-8">
               Nenhum tema ainda. Vá em <strong>Prospectar</strong> e busque oportunidades
               (ex: Psicólogo, Personal Trainer).
             </p>
           ) : (
-            <div className="rounded-lg border overflow-hidden">
+            <div className="rounded-lg border border-white/[0.06] overflow-hidden">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b bg-muted/50">
+                  <tr className="border-b border-white/[0.06] bg-white/[0.02]">
                     <th className="text-left p-3 font-medium">Tema</th>
                     <th className="text-center p-3 font-medium w-24">Leads</th>
                     <th className="text-left p-3 font-medium w-40">Arquivo</th>
@@ -122,7 +118,7 @@ export function ExportPanel({ themes, loading, onNotify }: ExportPanelProps) {
                 </thead>
                 <tbody>
                   {themes.map((theme) => (
-                    <tr key={theme.name} className="border-b last:border-0 hover:bg-muted/30">
+                    <tr key={theme.name} className="border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02]">
                       <td className="p-3 font-medium">{theme.name}</td>
                       <td className="p-3 text-center text-muted-foreground">{theme.count}</td>
                       <td className="p-3 text-xs text-muted-foreground font-mono">
@@ -144,19 +140,19 @@ export function ExportPanel({ themes, loading, onNotify }: ExportPanelProps) {
               </table>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {themes.length > 0 && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <FolderDown className="h-5 w-5 text-muted-foreground" />
+        <div className="glass-card p-5 space-y-4">
+          <div>
+            <h3 className="font-semibold text-sm flex items-center gap-2">
+              <FolderDown className="h-4 w-4 text-muted-foreground" />
               Exportação em lote
-            </CardTitle>
-            <CardDescription>Opções para baixar vários leads de uma vez</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col sm:flex-row gap-3">
+            </h3>
+            <p className="text-xs text-muted-foreground mt-1">Baixar vários leads de uma vez</p>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3">
             <Button
               variant="outline"
               className="flex-1"
@@ -175,8 +171,8 @@ export function ExportPanel({ themes, loading, onNotify }: ExportPanelProps) {
               <FolderDown className="h-4 w-4" />
               {exporting === 'all-themes' ? 'Gerando...' : 'Uma planilha por tema'}
             </Button>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
     </div>
   );

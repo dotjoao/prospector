@@ -30,8 +30,15 @@ import {
 import { api } from '@/services/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { Lead, LeadFilters, SearchParams } from '@/types';
+import { cn } from '@/lib/utils';
 
 const PAGE_SIZE = 50;
+
+const TAB_HINTS: Record<string, string> = {
+  prospectar: 'Busque novos leads e veja os melhores prospects',
+  leads: 'Gerencie, filtre e contate seus leads',
+  exportar: 'Baixe planilhas Excel por categoria',
+};
 
 export function HomePage() {
   const { user, signOut } = useAuth();
@@ -42,6 +49,7 @@ export function HomePage() {
   const [filters, setFilters] = useState<LeadFilters>({});
   const [loading, setLoading] = useState(false);
   const [searching, setSearching] = useState(false);
+  const [activeTab, setActiveTab] = useState('prospectar');
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [defaultCity, setDefaultCity] = useState('Cuiabá');
   const [defaultState, setDefaultState] = useState('MT');
@@ -137,92 +145,103 @@ export function HomePage() {
   }
 
   const leadsTitle = filters.categoria
-    ? `Leads — ${filters.categoria}`
+    ? filters.categoria
     : 'Todos os leads';
 
   const storageLabel = storage === 'supabase'
-    ? persistenceMode === 'supabase-db' ? 'Supabase DB' : 'Supabase'
+    ? persistenceMode === 'supabase-db' ? 'Supabase' : 'Supabase'
     : 'JSON local';
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-40">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-primary/20 p-2">
-              <Target className="h-6 w-6 text-primary" />
+    <div className="min-h-screen">
+      <header className="sticky top-0 z-40 border-b border-white/[0.06] bg-background/80 backdrop-blur-xl">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="rounded-xl bg-gradient-to-br from-primary/30 to-primary/10 p-2 ring-1 ring-primary/20">
+              <Target className="h-5 w-5 text-primary" />
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h1 className="text-xl font-bold tracking-tight">LeadHunter</h1>
-                <Badge variant="outline" className="text-xs gap-1 hidden sm:flex">
+                <h1 className="text-lg font-bold tracking-tight">LeadHunter</h1>
+                <Badge variant="outline" className="text-[10px] gap-1 hidden sm:flex border-white/10">
                   <Database className="h-3 w-3" />
                   {storageLabel}
                 </Badge>
               </div>
-              <p className="text-xs text-muted-foreground truncate max-w-[200px] sm:max-w-none">
-                {user?.username || 'Prospecção Inteligente'}
+              <p className="text-xs text-muted-foreground truncate">
+                Olá, {user?.username || 'usuário'}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
+            <Button variant="ghost" size="sm" onClick={handleRefresh} className="text-muted-foreground">
+              <RefreshCw className="h-4 w-4" />
+              <span className="hidden sm:inline ml-1.5">Atualizar</span>
+            </Button>
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
               onClick={() => setClearDialogOpen(true)}
-              className="text-destructive hover:text-destructive"
-              title="Limpar todos os leads"
+              className="text-muted-foreground hover:text-destructive"
             >
               <Trash2 className="h-4 w-4" />
-              <span className="hidden sm:inline ml-1">Limpar</span>
+              <span className="hidden sm:inline ml-1.5">Limpar</span>
             </Button>
-            <Button variant="outline" size="sm" onClick={handleRefresh}>
-              <RefreshCw className="h-4 w-4" />
-              <span className="hidden sm:inline ml-1">Atualizar</span>
-            </Button>
-            <Button variant="outline" size="sm" onClick={signOut} title="Sair">
+            <Button variant="ghost" size="sm" onClick={signOut} className="text-muted-foreground">
               <LogOut className="h-4 w-4" />
-              <span className="hidden sm:inline ml-1">Sair</span>
+              <span className="hidden sm:inline ml-1.5">Sair</span>
             </Button>
           </div>
         </div>
       </header>
 
       {notification && (
-        <div className="container mx-auto px-4 pt-4">
-          <div className={`flex items-center gap-2 p-3 rounded-lg text-sm ${
-            notification.type === 'success'
-              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
-              : 'bg-destructive/10 text-destructive border border-destructive/30'
-          }`}>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-4">
+          <div
+            className={cn(
+              'flex items-center gap-2 p-3 rounded-xl text-sm border',
+              notification.type === 'success'
+                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/25'
+                : 'bg-destructive/10 text-destructive border-destructive/25'
+            )}
+          >
             {notification.type === 'success' ? (
-              <CheckCircle2 className="h-4 w-4" />
+              <CheckCircle2 className="h-4 w-4 shrink-0" />
             ) : (
-              <AlertCircle className="h-4 w-4" />
+              <AlertCircle className="h-4 w-4 shrink-0" />
             )}
             {notification.message}
           </div>
         </div>
       )}
 
-      <main className="container mx-auto px-4 py-6">
-        <Tabs defaultValue="prospectar" className="w-full">
-          <TabsList className="grid grid-cols-3 w-full max-w-lg">
-            <TabsTrigger value="prospectar" className="gap-2">
-              <Search className="h-4 w-4 hidden sm:block" />
-              Prospectar
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid grid-cols-3 w-full h-auto p-1 bg-secondary/50 border border-white/[0.06]">
+            <TabsTrigger value="prospectar" className="gap-2 py-2.5 data-[state=active]:shadow-md">
+              <Search className="h-4 w-4" />
+              <span className="hidden xs:inline sm:inline">Prospectar</span>
             </TabsTrigger>
-            <TabsTrigger value="leads" className="gap-2">
-              <Users className="h-4 w-4 hidden sm:block" />
-              Leads
+            <TabsTrigger value="leads" className="gap-2 py-2.5 data-[state=active]:shadow-md">
+              <Users className="h-4 w-4" />
+              <span className="hidden xs:inline sm:inline">Leads</span>
+              {totalLeads > 0 && (
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 ml-0.5">
+                  {totalLeads}
+                </Badge>
+              )}
             </TabsTrigger>
-            <TabsTrigger value="exportar" className="gap-2">
-              <FileSpreadsheet className="h-4 w-4 hidden sm:block" />
-              Exportar
+            <TabsTrigger value="exportar" className="gap-2 py-2.5 data-[state=active]:shadow-md">
+              <FileSpreadsheet className="h-4 w-4" />
+              <span className="hidden xs:inline sm:inline">Exportar</span>
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="prospectar" className="space-y-6">
+          <p className="text-xs text-muted-foreground mt-3 mb-6 pl-1">
+            {TAB_HINTS[activeTab]}
+          </p>
+
+          <TabsContent value="prospectar" className="space-y-8 mt-0">
             <div key={dashboardKey}>
               <Dashboard />
             </div>
@@ -232,25 +251,25 @@ export function HomePage() {
               defaultState={defaultState}
             />
             {searching && (
-              <div className="text-center py-8 space-y-3">
-                <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-                <p className="text-muted-foreground">
-                  Buscando empresas, analisando sites e calculando scores...
+              <div className="glass-card py-12 text-center space-y-3">
+                <div className="inline-block h-9 w-9 animate-spin rounded-full border-[3px] border-primary border-t-transparent" />
+                <p className="text-sm text-muted-foreground">
+                  Buscando empresas e analisando sites...
                 </p>
-                <p className="text-xs text-muted-foreground">Isso pode levar alguns minutos</p>
+                <p className="text-xs text-muted-foreground/70">Pode levar alguns minutos</p>
               </div>
             )}
             {topProspects.length > 0 && !searching && (
               <LeadTable
                 leads={topProspects}
-                title="Top 20 Prospects"
+                title="Melhores prospects"
                 highlightTop={20}
                 onRefresh={handleRefresh}
               />
             )}
           </TabsContent>
 
-          <TabsContent value="leads" className="space-y-6">
+          <TabsContent value="leads" className="space-y-5 mt-0">
             <LeadFiltersPanel
               filters={filters}
               themes={themes}
@@ -268,7 +287,7 @@ export function HomePage() {
             />
           </TabsContent>
 
-          <TabsContent value="exportar">
+          <TabsContent value="exportar" className="mt-0">
             <ExportPanel
               themes={themes}
               loading={themesLoading}
@@ -278,8 +297,8 @@ export function HomePage() {
         </Tabs>
       </main>
 
-      <footer className="border-t mt-8 py-4 text-center text-xs text-muted-foreground">
-        LeadHunter — Dados no {storageLabel} · Planilhas Excel exportáveis
+      <footer className="border-t border-white/[0.04] mt-12 py-6 text-center text-xs text-muted-foreground">
+        LeadHunter · {storageLabel} · Excel exportável
       </footer>
 
       <Dialog open={clearDialogOpen} onOpenChange={setClearDialogOpen}>
@@ -287,8 +306,8 @@ export function HomePage() {
           <DialogHeader>
             <DialogTitle>Limpar todos os leads?</DialogTitle>
             <DialogDescription>
-              Esta ação remove permanentemente todos os {totalLeads > 0 ? `${totalLeads} ` : ''}leads
-              do banco de dados. Não pode ser desfeita.
+              Remove permanentemente {totalLeads > 0 ? `${totalLeads} ` : ''}leads do banco.
+              Esta ação não pode ser desfeita.
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-end gap-2 pt-2">

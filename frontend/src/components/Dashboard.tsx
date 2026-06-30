@@ -1,13 +1,13 @@
 ﻿import { useEffect, useState } from 'react';
 import {
   Users,
-  Star,
   Globe,
   MessageSquare,
   CheckCircle,
   Flame,
   Thermometer,
   Snowflake,
+  TrendingUp,
 } from 'lucide-react';
 import { StatCard } from '@/components/StatCard';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
@@ -36,67 +36,84 @@ export function Dashboard() {
     }
   }
 
-  if (loading) return <LoadingSpinner text="Carregando dashboard..." />;
-  if (error) return <div className="text-destructive text-sm p-4 rounded-lg border border-destructive/30 bg-destructive/10">{error}</div>;
+  if (loading) return <LoadingSpinner text="Carregando métricas..." />;
+  if (error) {
+    return (
+      <div className="text-destructive text-sm p-4 rounded-xl border border-destructive/30 bg-destructive/10">
+        {error}
+      </div>
+    );
+  }
   if (!stats) return null;
 
+  const quentes = stats.leadsQuentes ?? 0;
+  const mornos = stats.leadsMornos ?? 0;
+  const frios = stats.leadsFrios ?? 0;
+
   return (
-    <div className="space-y-4">
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+    <div className="space-y-6">
+      <div className="flex items-center gap-2">
+        <TrendingUp className="h-4 w-4 text-primary" />
+        <h2 className="section-label">Prioridade estratégica</h2>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-3">
         <StatCard
-          title="Total de Leads"
+          title="Leads quentes"
+          value={quentes}
+          icon={Flame}
+          accent="hot"
+          description="Score 160+ · abordagem direta"
+        />
+        <StatCard
+          title="Leads mornos"
+          value={mornos}
+          icon={Thermometer}
+          accent="warm"
+          description="Score 120–159 · nutrição"
+        />
+        <StatCard
+          title="Leads frios"
+          value={frios}
+          icon={Snowflake}
+          accent="cold"
+          description="Score &lt; 120 · autoridade"
+        />
+      </div>
+
+      <div className="flex items-center gap-2 pt-2">
+        <Users className="h-4 w-4 text-muted-foreground" />
+        <h2 className="section-label">Visão geral</h2>
+      </div>
+
+      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          title="Total"
           value={stats.totalLeads}
           icon={Users}
-          iconClassName="bg-blue-500/20 text-blue-400"
+          accent="blue"
+          compact
         />
         <StatCard
-          title="Alta Prioridade"
-          value={stats.altaPrioridade}
-          icon={Star}
-          iconClassName="bg-orange-500/20 text-orange-400"
-          description="Score final ≥ 120"
-        />
-        <StatCard
-          title="Sem Site"
+          title="Sem site"
           value={stats.semSite}
           icon={Globe}
-          iconClassName="bg-red-500/20 text-red-400"
+          accent="default"
+          compact
         />
         <StatCard
           title="Contatados"
           value={stats.contatados}
           icon={MessageSquare}
-          iconClassName="bg-cyan-500/20 text-cyan-400"
+          accent="cyan"
+          compact
         />
         <StatCard
           title="Fechados"
           value={stats.fechados}
           icon={CheckCircle}
-          iconClassName="bg-emerald-500/20 text-emerald-400"
-        />
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-3">
-        <StatCard
-          title="🔴 Leads Quentes"
-          value={stats.leadsQuentes ?? 0}
-          icon={Flame}
-          iconClassName="bg-red-500/20 text-red-400"
-          description="Score final 160+ — abordagem direta"
-        />
-        <StatCard
-          title="🟡 Leads Mornos"
-          value={stats.leadsMornos ?? 0}
-          icon={Thermometer}
-          iconClassName="bg-yellow-500/20 text-yellow-400"
-          description="Score 120–159 — nutrição"
-        />
-        <StatCard
-          title="🟢 Leads Frios"
-          value={stats.leadsFrios ?? 0}
-          icon={Snowflake}
-          iconClassName="bg-green-500/20 text-green-400"
-          description="Score &lt; 120 — autoridade"
+          accent="emerald"
+          compact
         />
       </div>
     </div>

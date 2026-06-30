@@ -1,4 +1,5 @@
 ﻿import { useEffect, useState } from 'react';
+import type { LucideIcon } from 'lucide-react';
 import {
   Copy,
   Check,
@@ -7,6 +8,9 @@ import {
   Star,
   Globe,
   MapPin,
+  Brain,
+  BarChart3,
+  ClipboardList,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -20,7 +24,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from '@/components/ui/dialog';
 import {
   Select,
@@ -33,11 +36,11 @@ import { api, LEAD_STATUSES } from '@/services/api';
 import { Lead, LeadStatus } from '@/types';
 import {
   cn,
-  getPrioridadeColor,
   getStatusColor,
   getLeadPriorityScore,
   getStrategyTypeBadgeColor,
   getStrategyTypeLabel,
+  getStrategyPriorityLabel,
 } from '@/lib/utils';
 
 interface LeadDetailDialogProps {
@@ -45,6 +48,26 @@ interface LeadDetailDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onUpdate: () => void;
+}
+
+function Section({
+  icon: Icon,
+  title,
+  children,
+}: {
+  icon: LucideIcon;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-xl border border-white/[0.06] bg-secondary/30 overflow-hidden">
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-white/[0.06] bg-white/[0.02]">
+        <Icon className="h-4 w-4 text-primary" />
+        <h4 className="font-medium text-sm">{title}</h4>
+      </div>
+      <div className="p-4">{children}</div>
+    </div>
+  );
 }
 
 export function LeadDetailDialog({ lead, open, onOpenChange, onUpdate }: LeadDetailDialogProps) {
@@ -130,94 +153,98 @@ export function LeadDetailDialog({ lead, open, onOpenChange, onUpdate }: LeadDet
   if (!lead || !displayLead) return null;
 
   const analysis = displayLead.websiteAnalysis;
+  const finalScore = getLeadPriorityScore(displayLead);
+  const tier = getStrategyPriorityLabel(finalScore);
+
+  const tierColors = {
+    quente: 'from-red-500/20 to-red-500/5 border-red-500/20 text-red-400',
+    morno: 'from-amber-500/20 to-amber-500/5 border-amber-500/20 text-amber-400',
+    frio: 'from-emerald-500/20 to-emerald-500/5 border-emerald-500/20 text-emerald-400',
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-xl">{displayLead.empresa}</DialogTitle>
-          <DialogDescription className="flex items-center gap-2 flex-wrap">
-            <Badge className={cn('border', getPrioridadeColor(displayLead.prioridade))}>
-              {displayLead.prioridade}
-            </Badge>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0 gap-0 border-white/10">
+        <div className={cn('px-6 pt-6 pb-4 bg-gradient-to-br border-b', tierColors[tier])}>
+          <DialogHeader>
+            <DialogTitle className="text-xl pr-8">{displayLead.empresa}</DialogTitle>
+          </DialogHeader>
+          <div className="flex items-center gap-3 mt-3 flex-wrap">
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-3xl font-bold">{finalScore}</span>
+              <span className="text-xs opacity-70">score final</span>
+            </div>
+            <span className="text-muted-foreground">·</span>
+            <span className="text-sm">Site: {displayLead.siteScore ?? displayLead.score}</span>
+            {displayLead.leadStrategyType && (
+              <Badge className={cn('border', getStrategyTypeBadgeColor(displayLead.leadStrategyType))}>
+                {getStrategyTypeLabel(displayLead.leadStrategyType)}
+              </Badge>
+            )}
             <Badge className={getStatusColor(displayLead.status)}>{displayLead.status}</Badge>
-            <span className="text-sm">
-              Score final: <strong>{getLeadPriorityScore(displayLead)}</strong>
-              {' · '}
-              Site: <strong>{displayLead.siteScore ?? displayLead.score}</strong>
-            </span>
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="rounded-lg border p-3 grid grid-cols-2 gap-2 text-xs">
-          <span>Cidade: <strong>{displayLead.cityTier ?? '—'}</strong></span>
-          <span>Intenção nicho: <strong>{displayLead.nicheIntentScore ?? '—'}</strong></span>
-          <span>
-            Estratégia:{' '}
-            <Badge className={cn('border text-[10px] ml-1', getStrategyTypeBadgeColor(displayLead.leadStrategyType))}>
-              {getStrategyTypeLabel(displayLead.leadStrategyType)}
-            </Badge>
-          </span>
-          <span>Variante A/B: <strong>{displayLead.messageVariant ?? '—'}</strong></span>
+          </div>
         </div>
 
-        <div className="grid gap-4">
-          <div className="grid grid-cols-2 gap-3 text-sm">
-            <div className="flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-muted-foreground" />
-              <span>{displayLead.cidade}, {displayLead.estado}</span>
+        <div className="p-6 space-y-4">
+          <Section icon={Brain} title="Estratégia">
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <span className="text-muted-foreground text-xs">Cidade (tier)</span>
+                <p className="font-medium">{displayLead.cityTier ?? '—'}</p>
+              </div>
+              <div>
+                <span className="text-muted-foreground text-xs">Intenção do nicho</span>
+                <p className="font-medium">{displayLead.nicheIntentScore ?? '—'}</p>
+              </div>
+              <div className="col-span-2">
+                <span className="text-muted-foreground text-xs">Variante A/B</span>
+                <p className="font-medium font-mono text-xs">{displayLead.messageVariant ?? '—'}</p>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <ContactPhone
-                phone={displayLead.telefone}
-                lead={displayLead}
-                size="md"
-                message={mensagem}
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <Globe className="h-4 w-4 text-muted-foreground" />
-              {displayLead.website ? (
-                <a href={displayLead.website} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate">
-                  {displayLead.website}
-                </a>
-              ) : (
-                <span className="text-muted-foreground">Sem site</span>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              <Star className="h-4 w-4 text-yellow-400" />
-              <span>{displayLead.nota} ({displayLead.avaliacoes} avaliações)</span>
-            </div>
-          </div>
+          </Section>
 
-          {analysis && (
-            <div className="rounded-lg border p-3 space-y-2">
-              <h4 className="font-medium text-sm">Análise do Site</h4>
-              <div className="grid grid-cols-2 gap-2 text-xs">
+          <Section icon={BarChart3} title="Dados do lead">
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
+                <span>{displayLead.cidade}, {displayLead.estado}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <ContactPhone phone={displayLead.telefone} lead={displayLead} size="md" message={mensagem} />
+              </div>
+              <div className="flex items-center gap-2 col-span-2">
+                <Globe className="h-4 w-4 text-muted-foreground shrink-0" />
+                {displayLead.website ? (
+                  <a href={displayLead.website} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate">
+                    {displayLead.website}
+                  </a>
+                ) : (
+                  <span className="text-muted-foreground">Sem site</span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <Star className="h-4 w-4 text-amber-400 shrink-0" />
+                <span>{displayLead.nota} ({displayLead.avaliacoes} avaliações)</span>
+              </div>
+            </div>
+
+            {analysis && (
+              <div className="mt-4 pt-4 border-t border-white/[0.06] grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
                 <span>Status: <strong>{analysis.siteStatus}</strong></span>
                 <span>HTTPS: <strong>{analysis.hasHttps ? 'Sim' : 'Não'}</strong></span>
-                <span>Responsivo: <strong>{analysis.isResponsive ? 'Sim' : 'Não'}</strong></span>
+                <span>Mobile: <strong>{analysis.isResponsive ? 'Sim' : 'Não'}</strong></span>
                 <span>WhatsApp: <strong>{analysis.hasWhatsapp ? 'Sim' : 'Não'}</strong></span>
                 <span>Formulário: <strong>{analysis.hasForm ? 'Sim' : 'Não'}</strong></span>
               </div>
-              {analysis.screenshotPath && (
-                <img
-                  src={analysis.screenshotPath}
-                  alt={`Screenshot ${displayLead.empresa}`}
-                  className="rounded-md border mt-2 w-full max-h-48 object-cover object-top"
-                />
-              )}
-            </div>
-          )}
+            )}
+          </Section>
 
-          <div className="border-t pt-4 space-y-3">
-            <h4 className="font-medium text-sm">CRM</h4>
+          <Section icon={ClipboardList} title="CRM">
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label>Status</Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Status</Label>
                 <Select value={status} onValueChange={(v) => setStatus(v as LeadStatus)}>
-                  <SelectTrigger>
+                  <SelectTrigger className="h-9 bg-background/50">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -227,29 +254,32 @@ export function LeadDetailDialog({ lead, open, onOpenChange, onUpdate }: LeadDet
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1">
-                <Label>Último Contato</Label>
-                <Input type="date" value={ultimoContato} onChange={(e) => setUltimoContato(e.target.value)} />
+              <div className="space-y-1.5">
+                <Label className="text-xs">Último contato</Label>
+                <Input type="date" value={ultimoContato} onChange={(e) => setUltimoContato(e.target.value)} className="h-9 bg-background/50" />
               </div>
-              <div className="space-y-1">
-                <Label>Próximo Follow-up</Label>
-                <Input type="date" value={proximoFollowUp} onChange={(e) => setProximoFollowUp(e.target.value)} />
+              <div className="space-y-1.5 col-span-2 sm:col-span-1">
+                <Label className="text-xs">Próximo follow-up</Label>
+                <Input type="date" value={proximoFollowUp} onChange={(e) => setProximoFollowUp(e.target.value)} className="h-9 bg-background/50" />
               </div>
             </div>
-            <div className="space-y-1">
-              <Label>Observações</Label>
+            <div className="space-y-1.5 mt-3">
+              <Label className="text-xs">Observações</Label>
               <Textarea
                 value={observacoes}
                 onChange={(e) => setObservacoes(e.target.value)}
-                placeholder="Anotações sobre o lead..."
-                rows={3}
+                placeholder="Anotações..."
+                rows={2}
+                className="bg-background/50 resize-none"
               />
             </div>
-          </div>
+          </Section>
 
-          <div className="border-t pt-4 space-y-3">
-            <div className="flex items-center justify-between gap-2 flex-wrap">
-              <h4 className="font-medium text-sm">Enviar no WhatsApp</h4>
+          <Section icon={MessageSquare} title="WhatsApp">
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <p className="text-xs text-muted-foreground">
+                1. Saudação → 2. Pitch → 3. Follow-up
+              </p>
               <WhatsAppMenu
                 phone={displayLead.telefone}
                 lead={displayLead}
@@ -258,53 +288,31 @@ export function LeadDetailDialog({ lead, open, onOpenChange, onUpdate }: LeadDet
                 showPhone={false}
               />
             </div>
-            <p className="text-xs text-muted-foreground">
-              Escolha: <strong>1. Saudação</strong> (oi, tudo bem?) → aguarde resposta →{' '}
-              <strong>2. Pitch</strong> (elogio + oferta) → <strong>3. Follow-up</strong> se não responder.
-            </p>
-          </div>
-
-          <div className="border-t pt-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <h4 className="font-medium text-sm flex items-center gap-2">
-                <MessageSquare className="h-4 w-4" />
-                Mensagem 2 — Pitch (editável)
-              </h4>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleCopy}
-                  disabled={!mensagem.trim()}
-                >
-                  {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                  Copiar
-                </Button>
-                <Button variant="outline" size="sm" onClick={handleGenerateMessage} disabled={loadingMessage}>
-                  {loadingMessage ? 'Gerando...' : 'Gerar Mensagem'}
-                </Button>
-              </div>
+            <div className="flex gap-2 mb-2">
+              <Button variant="outline" size="sm" onClick={handleCopy} disabled={!mensagem.trim()}>
+                {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                Copiar
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleGenerateMessage} disabled={loadingMessage}>
+                {loadingMessage ? 'Gerando...' : 'Gerar pitch'}
+              </Button>
             </div>
             <Textarea
               value={mensagem}
               onChange={(e) => setMensagem(e.target.value)}
-              placeholder="Usada na opção 2 do menu WhatsApp. Gere ou edite aqui."
-              rows={8}
+              placeholder="Mensagem 2 — pitch personalizado"
+              rows={6}
+              className="bg-background/50 text-sm resize-none"
             />
-            <p className="text-xs text-muted-foreground">
-              Ao salvar, a mensagem será gravada no lead e usada na opção &quot;Pitch&quot; do WhatsApp.
-            </p>
-          </div>
+          </Section>
 
-          <Button onClick={handleSave} disabled={saving} className="w-full">
-            {saving ? 'Salvando...' : saveSuccess ? 'Salvo com sucesso!' : 'Salvar Alterações'}
-          </Button>
-
-          <div className="flex gap-2">
-            <Button variant="outline" className="flex-1" asChild>
+          <div className="flex gap-2 pt-2">
+            <Button onClick={handleSave} disabled={saving} className="flex-1">
+              {saving ? 'Salvando...' : saveSuccess ? 'Salvo!' : 'Salvar alterações'}
+            </Button>
+            <Button variant="outline" asChild>
               <a href={displayLead.googleMapsUrl} target="_blank" rel="noopener noreferrer">
                 <ExternalLink className="h-4 w-4" />
-                Google Maps
               </a>
             </Button>
           </div>
