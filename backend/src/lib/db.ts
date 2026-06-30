@@ -3,13 +3,18 @@
 let pool: pg.Pool | null = null;
 
 export function isDbDirectAvailable(): boolean {
-  return !!(process.env.SUPABASE_URL && process.env.SUPABASE_DB_PASSWORD);
+  return !!(trimEnv(process.env.SUPABASE_URL) && trimEnv(process.env.SUPABASE_DB_PASSWORD));
+}
+
+function trimEnv(value: string | undefined): string | undefined {
+  const trimmed = value?.trim();
+  return trimmed || undefined;
 }
 
 export function getDbPool(): pg.Pool {
   if (!pool) {
-    const ref = process.env.SUPABASE_URL?.match(/https:\/\/([^.]+)/)?.[1];
-    const password = process.env.SUPABASE_DB_PASSWORD;
+    const ref = trimEnv(process.env.SUPABASE_URL)?.match(/https:\/\/([^.]+)/)?.[1];
+    const password = trimEnv(process.env.SUPABASE_DB_PASSWORD);
     if (!ref || !password) {
       throw new Error('SUPABASE_URL e SUPABASE_DB_PASSWORD são necessários para autenticação no banco.');
     }

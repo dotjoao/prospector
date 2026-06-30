@@ -46,12 +46,21 @@ export interface AppSettingsRow {
 
 let supabaseClient: SupabaseClient | null = null;
 
+function trimEnv(value: string | undefined): string | undefined {
+  const trimmed = value?.trim();
+  return trimmed || undefined;
+}
+
+export function getSupabaseUrl(): string | undefined {
+  return trimEnv(process.env.SUPABASE_URL);
+}
+
 export function getSupabaseServiceKey(): string | undefined {
-  return process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY;
+  return trimEnv(process.env.SUPABASE_SERVICE_ROLE_KEY) || trimEnv(process.env.SUPABASE_SECRET_KEY);
 }
 
 export function isSupabaseConfigured(): boolean {
-  return !!(process.env.SUPABASE_URL && getSupabaseServiceKey());
+  return !!(getSupabaseUrl() && getSupabaseServiceKey());
 }
 
 /** @deprecated Use getPersistenceMode() / usesSupabase() após initPersistence() */
@@ -68,7 +77,7 @@ export function getSupabase(): SupabaseClient {
 
   if (!supabaseClient) {
     supabaseClient = createClient(
-      process.env.SUPABASE_URL!,
+      getSupabaseUrl()!,
       getSupabaseServiceKey()!,
       { auth: { persistSession: false, autoRefreshToken: false } }
     );
