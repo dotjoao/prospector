@@ -45,6 +45,10 @@ function buildPitchFromLead(lead: Lead): string {
     }
   } else if (presence === 'instagram') {
     issues.push('usa apenas o Instagram como presença online, sem um site profissional');
+  } else if (presence === 'whatsapp') {
+    issues.push('usa apenas link de WhatsApp no Google Meu Negócio, sem site profissional');
+  } else if (presence === 'social') {
+    issues.push('usa apenas rede social como presença online, sem site profissional');
   } else if (
     lead.websiteAnalysis?.siteStatus === 'Offline' ||
     lead.websiteAnalysis?.siteStatus === 'Timeout'

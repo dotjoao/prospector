@@ -1,7 +1,7 @@
 ﻿import axios from 'axios';
 import * as cheerio from 'cheerio';
 import { WebsiteAnalysis, SiteStatus } from '../types/index.js';
-import { isInstagramUrl } from '../lib/lead-presence.js';
+import { isInstagramUrl, isWhatsAppUrl, isSocialOnlyUrl } from '../lib/lead-presence.js';
 
 const TIMEOUT_MS = 6000;
 
@@ -32,6 +32,30 @@ export class WebsiteAnalyzerService {
         hasWhatsapp: false,
         hasForm: false,
         hasInstagram: true,
+        analyzedAt: new Date().toISOString(),
+      };
+    }
+
+    if (isWhatsAppUrl(url)) {
+      console.log(`[Analyzer] ${url} - Link WhatsApp (sem site profissional)`);
+      return {
+        siteStatus: 'WhatsApp',
+        hasHttps: true,
+        isResponsive: false,
+        hasWhatsapp: true,
+        hasForm: false,
+        analyzedAt: new Date().toISOString(),
+      };
+    }
+
+    if (isSocialOnlyUrl(url)) {
+      console.log(`[Analyzer] ${url} - Rede social (sem site profissional)`);
+      return {
+        siteStatus: 'Social',
+        hasHttps: true,
+        isResponsive: false,
+        hasWhatsapp: false,
+        hasForm: false,
         analyzedAt: new Date().toISOString(),
       };
     }

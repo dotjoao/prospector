@@ -1,6 +1,6 @@
 ﻿import { Lead, Prioridade } from '../types/index.js';
 import { calculateScore } from '../utils/score.js';
-import { getDigitalPresence, isInstagramOnlyLead } from './lead-presence.js';
+import { getDigitalPresence, isInstagramOnlyLead, resolveSiteStatusForScoring } from './lead-presence.js';
 
 export type CityTier = 'TIER_1' | 'TIER_2' | 'TIER_3';
 export type LeadStrategyType = 'DIRECT' | 'INDIRECT' | 'AUTHORITY';
@@ -125,12 +125,17 @@ export function pickMessageVariant(
 
 export function calculateSiteScoreFromLead(lead: Pick<Lead, 'website' | 'websiteAnalysis' | 'avaliacoes' | 'nota'>): number {
   const analysis = lead.websiteAnalysis;
+  const siteStatus = resolveSiteStatusForScoring(
+    lead.website,
+    analysis?.siteStatus || (lead.website ? 'Online' : 'Sem Site')
+  );
   return calculateScore({
     website: lead.website,
-    siteStatus: analysis?.siteStatus || (lead.website ? 'Online' : 'Sem Site'),
+    siteStatus,
     hasWhatsapp: analysis?.hasWhatsapp ?? false,
     hasForm: analysis?.hasForm ?? false,
     isResponsive: analysis?.isResponsive ?? false,
+    hasHttps: analysis?.hasHttps ?? false,
     avaliacoes: lead.avaliacoes,
     nota: lead.nota,
   });
@@ -177,6 +182,10 @@ function getSiteIssues(lead: Lead): string[] {
     if (!hasPhone) {
       issues.push('não há um canal direto de contato além das redes sociais');
     }
+  } else if (presence === 'whatsapp') {
+    issues.push('usa apenas link de WhatsApp no Google Meu Negócio, sem site profissional');
+  } else if (presence === 'social') {
+    issues.push('usa apenas rede social (Facebook, Linktree etc.), sem site profissional');
   } else if (
     lead.websiteAnalysis?.siteStatus === 'Offline' ||
     lead.websiteAnalysis?.siteStatus === 'Timeout'
@@ -253,7 +262,7 @@ Notei que ${issueText}. Se em algum momento quiser conversar sobre isso, fico à
 }
 
 export function enrichLeadStrategy(lead: Lead): Lead {
-  const siteScore = lead.siteScore ?? lead.score ?? calculateSiteScoreFromLead(lead);
+  const siteScore = calculateSiteScoreFromLead(lead);
   const profile = buildStrategyProfile({
     cidade: lead.cidade,
     categoria: lead.categoria,
@@ -265,12 +274,12 @@ export function enrichLeadStrategy(lead: Lead): Lead {
     ...lead,
     score: siteScore,
     siteScore: profile.siteScore,
-    cityTier: lead.cityTier ?? profile.cityTier,
-    nicheIntentScore: lead.nicheIntentScore ?? profile.nicheIntentScore,
-    leadScoreFinal: lead.leadScoreFinal ?? profile.leadScoreFinal,
-    leadStrategyType: lead.leadStrategyType ?? profile.leadStrategyType,
-    messageVariant: lead.messageVariant ?? profile.messageVariant,
-    prioridade: getPrioridadeFromFinalScore(lead.leadScoreFinal ?? profile.leadScoreFinal),
+    cityTier: profile.cityTier,
+    nicheIntentScore: profile.nicheIntentScore,
+    leadScoreFinal: profile.leadScoreFinal,
+    leadStrategyType: profile.leadStrategyType,
+    messageVariant: profile.messageVariant,
+    prioridade: profile.prioridade,
   };
 
   if (!enriched.mensagemProspeccao?.trim()) {

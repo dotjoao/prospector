@@ -12,6 +12,7 @@ import { Lead, LeadFilters, DashboardStats, UpdateLeadPayload, PaginatedLeads } 
 
 import { isLeadContacted } from '../utils/message.js';
 import { enrichLeadStrategy, getLeadSortScore } from '../lib/strategy-engine.js';
+import { matchesExactFilter } from '../lib/lead-presence.js';
 
 
 
@@ -58,19 +59,11 @@ function filterInMemory(leads: Lead[], filters: LeadFilters): Lead[] {
   }
 
   if (filters.cidade) {
-
-    const cidade = filters.cidade.toLowerCase();
-
-    result = result.filter((l) => l.cidade.toLowerCase().includes(cidade));
-
+    result = result.filter((l) => matchesExactFilter(l.cidade, filters.cidade!));
   }
 
   if (filters.categoria) {
-
-    const cat = filters.categoria.toLowerCase();
-
-    result = result.filter((l) => l.categoria.toLowerCase().includes(cat));
-
+    result = result.filter((l) => matchesExactFilter(l.categoria, filters.categoria!));
   }
 
   if (filters.possuiSite === true) {

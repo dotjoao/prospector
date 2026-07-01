@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useState } from 'react';
+﻿import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Target,
   RefreshCw,
@@ -61,26 +61,29 @@ export function HomePage() {
   const [clearDialogOpen, setClearDialogOpen] = useState(false);
   const [clearing, setClearing] = useState(false);
   const { themes, loading: themesLoading } = useThemes(dashboardKey);
+  const fetchGenerationRef = useRef(0);
+  const skipLoadEffectRef = useRef(false);
 
   const loadLeads = useCallback(async () => {
+    const generation = ++fetchGenerationRef.current;
     setLoading(true);
     try {
       const data = await api.getLeads({ ...filters, page, limit: PAGE_SIZE });
+      if (generation !== fetchGenerationRef.current) return;
       setLeads(data.leads);
       setTotalLeads(data.total);
     } catch (err) {
-      showNotification('error', (err as Error).message);
+      if (generation === fetchGenerationRef.current) {
+        showNotification('error', (err as Error).message);
+      }
     } finally {
-      setLoading(false);
+      if (generation === fetchGenerationRef.current) {
+        setLoading(false);
+      }
     }
   }, [filters, page]);
 
   useEffect(() => {
-    setPage(1);
-  }, [filters]);
-
-  useEffect(() => {
-    loadLeads();
     api.warmup().catch(() => {});
     api.getConfig().then((config) => {
       setDefaultCity(config.defaultCity);
@@ -90,6 +93,15 @@ export function HomePage() {
       setStorage(h.storage);
       setPersistenceMode((h as { persistenceMode?: string }).persistenceMode || h.storage);
     }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    setPage(1);
+  }, [filters]);
+
+  useEffect(() => {
+    if (skipLoadEffectRef.current) return;
+    loadLeads();
   }, [loadLeads]);
 
   useEffect(() => {
@@ -110,8 +122,14 @@ export function HomePage() {
   }
 
   async function handleSearch(params: SearchParams) {
+    fetchGenerationRef.current++;
+    skipLoadEffectRef.current = true;
     setSearching(true);
     setSearchPhase('warming');
+    setTopProspects([]);
+    setLeads([]);
+    setTotalLeads(0);
+
     try {
       await api.warmup();
       setSearchPhase('searching');
@@ -125,7 +143,9 @@ export function HomePage() {
       setFilters(newFilters);
       setPage(1);
 
+      const generation = ++fetchGenerationRef.current;
       const data = await api.getLeads({ ...newFilters, page: 1, limit: PAGE_SIZE });
+      if (generation !== fetchGenerationRef.current) return;
       setLeads(data.leads);
       setTotalLeads(data.total);
 
@@ -135,6 +155,7 @@ export function HomePage() {
       showNotification('error', (err as Error).message);
     } finally {
       setSearching(false);
+      skipLoadEffectRef.current = false;
     }
   }
 

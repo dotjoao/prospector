@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { LeadDetailDialog } from '@/components/LeadDetailDialog';
 import { ContactPhone } from '@/components/ContactPhone';
+import { WhatsAppMenu } from '@/components/WhatsAppMenu';
 import { InstagramButton } from '@/components/InstagramButton';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { Lead } from '@/types';
@@ -185,8 +186,9 @@ export function LeadTable({
                         {lead.nota} · {lead.avaliacoes} aval.
                       </span>
                       {lead.telefone ? (
-                        <span onClick={(e) => e.stopPropagation()} className="flex items-center gap-1">
-                          <ContactPhone phone={lead.telefone} lead={lead} />
+                        <span onClick={(e) => e.stopPropagation()} className="inline-flex items-center gap-1.5 shrink-0">
+                          <ContactPhone phone={lead.telefone} showIcon={false} />
+                          <WhatsAppMenu phone={lead.telefone} lead={lead} />
                           <InstagramButton lead={lead} />
                         </span>
                       ) : (

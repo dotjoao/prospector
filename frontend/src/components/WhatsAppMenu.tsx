@@ -1,7 +1,7 @@
 ﻿import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { ChevronDown, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { formatPhone, getWhatsAppLink } from '@/lib/utils';
+import { getWhatsAppLink } from '@/lib/utils';
 import {
   WHATSAPP_MESSAGE_OPTIONS,
   buildWhatsAppMessage,
@@ -14,7 +14,6 @@ interface WhatsAppMenuProps {
   lead?: Lead;
   pitchMessage?: string;
   size?: 'sm' | 'md';
-  showPhone?: boolean;
 }
 
 function WhatsAppIcon({ className }: { className?: string }) {
@@ -30,7 +29,6 @@ export function WhatsAppMenu({
   lead,
   pitchMessage,
   size = 'sm',
-  showPhone = true,
 }: WhatsAppMenuProps) {
   if (!phone) {
     return <span className="text-muted-foreground">-</span>;
@@ -44,11 +42,7 @@ export function WhatsAppMenu({
   }
 
   return (
-    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-      {showPhone && (
-        <span className={isSmall ? 'text-xs' : 'text-sm'}>{formatPhone(phone)}</span>
-      )}
-
+    <div className="relative inline-flex shrink-0" onClick={(e) => e.stopPropagation()}>
       <DropdownMenu.Root>
         <DropdownMenu.Trigger asChild>
           <Button
@@ -56,17 +50,19 @@ export function WhatsAppMenu({
             size="sm"
             className={`h-7 gap-1 border-green-500/30 bg-green-500/10 text-green-400 hover:bg-green-500/20 hover:text-green-300 ${isSmall ? 'px-2 text-xs' : ''}`}
           >
-            <WhatsAppIcon className="h-3.5 w-3.5" />
+            <WhatsAppIcon className="h-3.5 w-3.5 shrink-0" />
             WhatsApp
-            <ChevronDown className="h-3 w-3 opacity-70" />
+            <ChevronDown className="h-3 w-3 shrink-0 opacity-70" />
           </Button>
         </DropdownMenu.Trigger>
 
         <DropdownMenu.Portal>
           <DropdownMenu.Content
-            className="z-50 min-w-[240px] rounded-lg border border-border bg-popover p-1 shadow-lg animate-in fade-in-0 zoom-in-95"
-            sideOffset={6}
+            className="z-[200] min-w-[240px] rounded-lg border border-border bg-popover p-1 shadow-lg animate-in fade-in-0 zoom-in-95"
+            sideOffset={8}
             align="end"
+            collisionPadding={16}
+            avoidCollisions
           >
             <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
               Escolha a mensagem

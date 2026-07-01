@@ -19,7 +19,7 @@ export type MessageVariant =
   | 'indirect_positioning'
   | 'authority_social_proof';
 
-export type SiteStatus = 'Online' | 'Offline' | 'Timeout' | 'Sem Site' | 'Instagram';
+export type SiteStatus = 'Online' | 'Offline' | 'Timeout' | 'Sem Site' | 'Instagram' | 'WhatsApp' | 'Social';
 
 export interface WebsiteAnalysis {
   siteStatus: SiteStatus;

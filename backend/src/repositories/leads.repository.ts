@@ -1,6 +1,7 @@
 ﻿import { getSupabase, leadToRow, rowToLead, LeadRow, isSupabaseConfigured } from '../lib/supabase.js';
 import { getDbPool, isDbDirectAvailable } from '../lib/db.js';
 import { getLeadSortScore } from '../lib/strategy-engine.js';
+import { matchesExactFilter } from '../lib/lead-presence.js';
 import { Lead, LeadFilters, UpdateLeadPayload, DashboardStats, PaginatedLeads } from '../types/index.js';
 
 const LIST_COLUMNS =
@@ -42,8 +43,8 @@ export class SupabaseLeadsRepository {
       .select(LIST_COLUMNS, { count: 'exact' });
 
     if (filters.busca) query = query.ilike('empresa', `%${filters.busca}%`);
-    if (filters.cidade) query = query.ilike('cidade', `%${filters.cidade}%`);
-    if (filters.categoria) query = query.ilike('categoria', `%${filters.categoria}%`);
+    if (filters.cidade) query = query.eq('cidade', filters.cidade);
+    if (filters.categoria) query = query.eq('categoria', filters.categoria);
     if (filters.possuiSite === true) query = query.neq('website', '');
     if (filters.possuiSite === false) query = query.or('website.is.null,website.eq.');
     if (filters.scoreMinimo !== undefined) {
@@ -58,9 +59,17 @@ export class SupabaseLeadsRepository {
 
     if (error) throw new Error(`[Supabase] Erro ao filtrar leads: ${error.message}`);
 
+    let leads = sortLeadsByPriority((data as LeadRow[]).map(rowToLead));
+    if (filters.cidade) {
+      leads = leads.filter((l) => matchesExactFilter(l.cidade, filters.cidade!));
+    }
+    if (filters.categoria) {
+      leads = leads.filter((l) => matchesExactFilter(l.categoria, filters.categoria!));
+    }
+
     return {
-      leads: sortLeadsByPriority((data as LeadRow[]).map(rowToLead)),
-      total: count ?? 0,
+      leads,
+      total: count ?? leads.length,
       page,
       limit,
     };

@@ -119,6 +119,7 @@ export class OpportunitiesService {
       hasWhatsapp: analysis.hasWhatsapp,
       hasForm: analysis.hasForm,
       isResponsive: analysis.isResponsive,
+      hasHttps: analysis.hasHttps,
       avaliacoes: place.user_ratings_total || 0,
       nota: place.rating || 0,
     });

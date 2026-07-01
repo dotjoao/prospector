@@ -242,7 +242,7 @@ export function LeadDetailDialog({ lead, open, onOpenChange, onUpdate }: LeadDet
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-muted-foreground text-xs shrink-0">Contato:</span>
                   {activeLead.telefone ? (
-                    <ContactPhone phone={activeLead.telefone} lead={activeLead} size="md" message={mensagem} />
+                    <ContactPhone phone={activeLead.telefone} size="md" />
                   ) : (
                     <span className="text-muted-foreground">Sem telefone</span>
                   )}
@@ -289,7 +289,6 @@ export function LeadDetailDialog({ lead, open, onOpenChange, onUpdate }: LeadDet
                     lead={activeLead}
                     pitchMessage={mensagem}
                     size="md"
-                    showPhone={false}
                   />
                 )}
                 <InstagramButton lead={activeLead} size="md" />
