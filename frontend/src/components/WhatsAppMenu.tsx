@@ -1,20 +1,58 @@
-﻿import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
-import { ChevronDown, MessageCircle } from 'lucide-react';
+﻿import { useState } from 'react';
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
+import {
+  ArrowUpRight,
+  ChevronDown,
+  Clock,
+  Hand,
+  Megaphone,
+  type LucideIcon,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { getWhatsAppLink } from '@/lib/utils';
+import { cn, getWhatsAppLink } from '@/lib/utils';
 import {
   WHATSAPP_MESSAGE_OPTIONS,
   buildWhatsAppMessage,
   type WhatsAppMessageType,
 } from '@/lib/whatsapp-messages';
-import { Lead } from '@/types';
+import { api } from '@/services/api';
+import { Lead, LeadStatus } from '@/types';
 
 interface WhatsAppMenuProps {
   phone: string;
   lead?: Lead;
   pitchMessage?: string;
   size?: 'sm' | 'md';
+  onMessageSent?: () => void;
 }
+
+const MESSAGE_META: Record<
+  WhatsAppMessageType,
+  { icon: LucideIcon; accent: string; step: string }
+> = {
+  saudacao: {
+    icon: Hand,
+    accent: 'bg-emerald-500/15 text-emerald-400 ring-emerald-500/25',
+    step: '1',
+  },
+  pitch: {
+    icon: Megaphone,
+    accent: 'bg-green-500/15 text-green-400 ring-green-500/25',
+    step: '2',
+  },
+  followup: {
+    icon: Clock,
+    accent: 'bg-cyan-500/15 text-cyan-400 ring-cyan-500/25',
+    step: '3',
+  },
+};
+
+const ADVANCED_STATUSES: LeadStatus[] = [
+  'Interessado',
+  'Proposta Enviada',
+  'Fechado',
+  'Perdido',
+];
 
 function WhatsAppIcon({ className }: { className?: string }) {
   return (
@@ -24,12 +62,25 @@ function WhatsAppIcon({ className }: { className?: string }) {
   );
 }
 
+function truncatePreview(text: string, max = 80): string {
+  const single = text.replace(/\s+/g, ' ').trim();
+  return single.length > max ? `${single.slice(0, max)}…` : single;
+}
+
+function todayIsoDate(): string {
+  return new Date().toISOString().split('T')[0];
+}
+
 export function WhatsAppMenu({
   phone,
   lead,
   pitchMessage,
   size = 'sm',
+  onMessageSent,
 }: WhatsAppMenuProps) {
+  const [open, setOpen] = useState(false);
+  const [sending, setSending] = useState<WhatsAppMessageType | null>(null);
+
   if (!phone) {
     return <span className="text-muted-foreground">-</span>;
   }
@@ -41,55 +92,130 @@ export function WhatsAppMenu({
     return getWhatsAppLink(phone, message);
   }
 
+  async function handleSend(type: WhatsAppMessageType) {
+    const link = getLink(type);
+    if (!link) return;
+
+    setSending(type);
+    window.open(link, '_blank', 'noopener,noreferrer');
+    setOpen(false);
+
+    if (lead?.id) {
+      const today = todayIsoDate();
+      const shouldSetStatus =
+        !lead.status || !ADVANCED_STATUSES.includes(lead.status);
+
+      try {
+        await api.updateLead(lead.id, {
+          ...(shouldSetStatus ? { status: 'Mensagem Enviada' as const } : {}),
+          ultimoContato: today,
+        });
+        onMessageSent?.();
+      } catch {
+        // abre o WhatsApp mesmo se o CRM falhar
+      }
+    }
+
+    setSending(null);
+  }
+
   return (
     <div className="relative inline-flex shrink-0" onClick={(e) => e.stopPropagation()}>
-      <DropdownMenu.Root>
+      <DropdownMenu.Root open={open} onOpenChange={setOpen}>
         <DropdownMenu.Trigger asChild>
           <Button
             variant="outline"
             size="sm"
-            className={`h-7 gap-1 border-green-500/30 bg-green-500/10 text-green-400 hover:bg-green-500/20 hover:text-green-300 ${isSmall ? 'px-2 text-xs' : ''}`}
+            className={cn(
+              'gap-1 border-green-500/30 bg-green-500/10 text-green-400 hover:bg-green-500/20 hover:text-green-300',
+              isSmall ? 'h-7 px-2 text-xs' : ''
+            )}
           >
             <WhatsAppIcon className="h-3.5 w-3.5 shrink-0" />
             WhatsApp
-            <ChevronDown className="h-3 w-3 shrink-0 opacity-70" />
+            <ChevronDown
+              className={cn('h-3 w-3 shrink-0 opacity-70 transition-transform', open && 'rotate-180')}
+            />
           </Button>
         </DropdownMenu.Trigger>
 
         <DropdownMenu.Portal>
           <DropdownMenu.Content
-            className="z-[200] min-w-[240px] rounded-lg border border-border bg-popover p-1 shadow-lg animate-in fade-in-0 zoom-in-95"
+            className="z-[200] w-[min(320px,calc(100vw-2rem))] overflow-hidden rounded-xl border border-white/10 bg-popover p-0 shadow-xl animate-in fade-in-0 zoom-in-95"
             sideOffset={8}
             align="end"
             collisionPadding={16}
             avoidCollisions
           >
-            <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
-              Escolha a mensagem
+            <div className="border-b border-white/[0.06] bg-green-500/[0.06] px-3.5 py-3">
+              <p className="text-sm font-semibold text-foreground">Enviar mensagem</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Abre o WhatsApp e marca o lead como{' '}
+                <span className="text-cyan-400/90">Mensagem Enviada</span>
+              </p>
             </div>
-            {WHATSAPP_MESSAGE_OPTIONS.map((option, index) => {
-              const link = getLink(option.id);
-              if (!link) return null;
 
-              return (
-                <DropdownMenu.Item key={option.id} asChild>
-                  <a
-                    href={link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex cursor-pointer flex-col gap-0.5 rounded-md px-2 py-2 text-sm outline-none hover:bg-accent focus:bg-accent"
+            <div className="p-1.5">
+              {WHATSAPP_MESSAGE_OPTIONS.map((option) => {
+                const link = getLink(option.id);
+                if (!link) return null;
+
+                const meta = MESSAGE_META[option.id];
+                const Icon = meta.icon;
+                const preview = truncatePreview(
+                  buildWhatsAppMessage(option.id, { lead, pitchOverride: pitchMessage })
+                );
+                const isSending = sending === option.id;
+
+                return (
+                  <DropdownMenu.Item
+                    key={option.id}
+                    className={cn(
+                      'group flex cursor-pointer items-start gap-3 rounded-lg px-2.5 py-2.5 outline-none',
+                      'hover:bg-accent focus:bg-accent data-[highlighted]:bg-accent'
+                    )}
+                    disabled={isSending}
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      void handleSend(option.id);
+                    }}
                   >
-                    <span className="flex items-center gap-2 font-medium text-foreground">
-                      <MessageCircle className="h-3.5 w-3.5 text-green-400" />
-                      {index + 1}. {option.label}
-                    </span>
-                    <span className="pl-5 text-xs text-muted-foreground line-clamp-2">
-                      {option.description}
-                    </span>
-                  </a>
-                </DropdownMenu.Item>
-              );
-            })}
+                    <div
+                      className={cn(
+                        'mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ring-1',
+                        meta.accent
+                      )}
+                    >
+                      <Icon className="h-4 w-4" />
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                          Passo {meta.step}
+                        </span>
+                        <span className="text-sm font-medium text-foreground">{option.label}</span>
+                      </div>
+                      <p className="mt-0.5 text-xs text-muted-foreground">{option.description}</p>
+                      <p className="mt-1.5 rounded-md bg-secondary/60 px-2 py-1 text-[11px] leading-relaxed text-foreground/70 line-clamp-2">
+                        {preview}
+                      </p>
+                    </div>
+
+                    <ArrowUpRight
+                      className={cn(
+                        'mt-1 h-4 w-4 shrink-0 text-muted-foreground opacity-0 transition-opacity',
+                        'group-hover:opacity-100 group-focus:opacity-100 group-data-[highlighted]:opacity-100'
+                      )}
+                    />
+                  </DropdownMenu.Item>
+                );
+              })}
+            </div>
+
+            <div className="border-t border-white/[0.06] px-3.5 py-2 text-[11px] text-muted-foreground">
+              Fluxo sugerido: saudação → aguarde resposta → pitch → follow-up
+            </div>
           </DropdownMenu.Content>
         </DropdownMenu.Portal>
       </DropdownMenu.Root>

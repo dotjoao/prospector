@@ -1,5 +1,5 @@
 ﻿import { useState } from 'react';
-import { Filter, X, Tag, ChevronDown, ChevronUp } from 'lucide-react';
+import { Filter, X, Tag, ChevronDown, ChevronUp, MessageCircle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -11,8 +11,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { LEAD_STATUSES, PRIORIDADES } from '@/services/api';
-import { LeadFilters } from '@/types';
+import { PRIORIDADES } from '@/services/api';
+import { LeadFilters, LeadStatus } from '@/types';
 import { ThemeOption } from '@/components/ExportPanel';
 import { cn } from '@/lib/utils';
 
@@ -21,6 +21,24 @@ interface LeadFiltersPanelProps {
   themes: ThemeOption[];
   onChange: (filters: LeadFilters) => void;
 }
+
+const CRM_STATUS_FILTERS: {
+  value?: LeadStatus;
+  label: string;
+  activeClass?: string;
+}[] = [
+  { label: 'Todos' },
+  { value: 'Nao Contatado', label: 'Não contatado' },
+  {
+    value: 'Mensagem Enviada',
+    label: 'Mensagem enviada',
+    activeClass: 'bg-cyan-500 hover:bg-cyan-500/90 text-white border-cyan-500/50',
+  },
+  { value: 'Interessado', label: 'Interessado', activeClass: 'bg-blue-500 hover:bg-blue-500/90 text-white border-blue-500/50' },
+  { value: 'Proposta Enviada', label: 'Proposta enviada', activeClass: 'bg-purple-500 hover:bg-purple-500/90 text-white border-purple-500/50' },
+  { value: 'Fechado', label: 'Fechado', activeClass: 'bg-emerald-500 hover:bg-emerald-500/90 text-white border-emerald-500/50' },
+  { value: 'Perdido', label: 'Perdido', activeClass: 'bg-red-500 hover:bg-red-500/90 text-white border-red-500/50' },
+];
 
 export function LeadFiltersPanel({ filters, themes, onChange }: LeadFiltersPanelProps) {
   const [expanded, setExpanded] = useState(true);
@@ -35,6 +53,15 @@ export function LeadFiltersPanel({ filters, themes, onChange }: LeadFiltersPanel
       onChange(rest);
     } else {
       onChange({ ...filters, categoria: theme });
+    }
+  }
+
+  function selectStatus(status?: LeadStatus) {
+    if (!status) {
+      const { status: _, ...rest } = filters;
+      onChange(rest);
+    } else {
+      onChange({ ...filters, status });
     }
   }
 
@@ -110,6 +137,32 @@ export function LeadFiltersPanel({ filters, themes, onChange }: LeadFiltersPanel
             </div>
           )}
 
+          <div className="space-y-2">
+            <Label className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+              <MessageCircle className="h-3.5 w-3.5" />
+              Status CRM
+            </Label>
+            <div className="flex flex-wrap gap-2">
+              {CRM_STATUS_FILTERS.map((item) => {
+                const isActive = item.value ? filters.status === item.value : !filters.status;
+
+                return (
+                  <Badge
+                    key={item.label}
+                    variant={isActive ? 'default' : 'outline'}
+                    className={cn(
+                      'cursor-pointer px-3 py-1 transition-colors',
+                      isActive && (item.activeClass || 'bg-primary hover:bg-primary/90')
+                    )}
+                    onClick={() => selectStatus(item.value)}
+                  >
+                    {item.label}
+                  </Badge>
+                );
+              })}
+            </div>
+          </div>
+
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <div className="space-y-1.5">
               <Label className="text-xs">Buscar empresa</Label>
@@ -140,23 +193,6 @@ export function LeadFiltersPanel({ filters, themes, onChange }: LeadFiltersPanel
                 }
                 className="bg-background/50 h-9"
               />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Status</Label>
-              <Select
-                value={filters.status || 'all'}
-                onValueChange={(v) => updateFilter('status', v === 'all' ? undefined : v)}
-              >
-                <SelectTrigger className="bg-background/50 h-9">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  {LEAD_STATUSES.map((s) => (
-                    <SelectItem key={s} value={s}>{s}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Prioridade</Label>

@@ -188,7 +188,11 @@ export function LeadTable({
                       {lead.telefone ? (
                         <span onClick={(e) => e.stopPropagation()} className="inline-flex items-center gap-1.5 shrink-0">
                           <ContactPhone phone={lead.telefone} showIcon={false} />
-                          <WhatsAppMenu phone={lead.telefone} lead={lead} />
+                          <WhatsAppMenu
+                            phone={lead.telefone}
+                            lead={lead}
+                            onMessageSent={onRefresh}
+                          />
                           <InstagramButton lead={lead} />
                         </span>
                       ) : (
