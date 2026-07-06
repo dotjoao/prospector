@@ -141,21 +141,21 @@ export function WhatsAppMenu({
 
         <DropdownMenu.Portal>
           <DropdownMenu.Content
-            className="z-[200] w-[min(320px,calc(100vw-2rem))] overflow-hidden rounded-xl border border-white/10 bg-popover p-0 shadow-xl animate-in fade-in-0 zoom-in-95"
+            className="z-[9999] w-[min(340px,calc(100vw-2rem))] overflow-hidden rounded-xl border border-white/20 bg-[#0b1120] p-0 shadow-[0_20px_50px_rgba(0,0,0,0.65)] animate-in fade-in-0 zoom-in-95"
             sideOffset={8}
             align="end"
             collisionPadding={16}
             avoidCollisions
           >
-            <div className="border-b border-white/[0.06] bg-green-500/[0.06] px-3.5 py-3">
-              <p className="text-sm font-semibold text-foreground">Enviar mensagem</p>
-              <p className="mt-0.5 text-xs text-muted-foreground">
+            <div className="border-b border-white/10 bg-[#0f1729] px-4 py-3">
+              <p className="text-sm font-semibold text-white">Enviar mensagem</p>
+              <p className="mt-1 text-xs leading-relaxed text-slate-400">
                 Abre o WhatsApp e marca o lead como{' '}
-                <span className="text-cyan-400/90">Mensagem Enviada</span>
+                <span className="font-medium text-cyan-400">Mensagem Enviada</span>
               </p>
             </div>
 
-            <div className="p-1.5">
+            <div className="space-y-1 bg-[#0b1120] p-2">
               {WHATSAPP_MESSAGE_OPTIONS.map((option) => {
                 const link = getLink(option.id);
                 if (!link) return null;
@@ -163,7 +163,8 @@ export function WhatsAppMenu({
                 const meta = MESSAGE_META[option.id];
                 const Icon = meta.icon;
                 const preview = truncatePreview(
-                  buildWhatsAppMessage(option.id, { lead, pitchOverride: pitchMessage })
+                  buildWhatsAppMessage(option.id, { lead, pitchOverride: pitchMessage }),
+                  100
                 );
                 const isSending = sending === option.id;
 
@@ -171,8 +172,10 @@ export function WhatsAppMenu({
                   <DropdownMenu.Item
                     key={option.id}
                     className={cn(
-                      'group flex cursor-pointer items-start gap-3 rounded-lg px-2.5 py-2.5 outline-none',
-                      'hover:bg-accent focus:bg-accent data-[highlighted]:bg-accent'
+                      'group flex cursor-pointer items-start gap-3 rounded-lg border border-transparent px-3 py-3 outline-none',
+                      'text-slate-200 hover:border-white/10 hover:bg-[#151f35]',
+                      'focus:border-white/10 focus:bg-[#151f35]',
+                      'data-[highlighted]:border-white/10 data-[highlighted]:bg-[#151f35]'
                     )}
                     disabled={isSending}
                     onSelect={(e) => {
@@ -182,7 +185,7 @@ export function WhatsAppMenu({
                   >
                     <div
                       className={cn(
-                        'mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ring-1',
+                        'mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ring-1',
                         meta.accent
                       )}
                     >
@@ -191,21 +194,21 @@ export function WhatsAppMenu({
 
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                        <span className="rounded bg-white/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
                           Passo {meta.step}
                         </span>
-                        <span className="text-sm font-medium text-foreground">{option.label}</span>
+                        <span className="text-sm font-semibold text-white">{option.label}</span>
                       </div>
-                      <p className="mt-0.5 text-xs text-muted-foreground">{option.description}</p>
-                      <p className="mt-1.5 rounded-md bg-secondary/60 px-2 py-1 text-[11px] leading-relaxed text-foreground/70 line-clamp-2">
+                      <p className="mt-1 text-xs text-slate-400">{option.description}</p>
+                      <p className="mt-2 rounded-lg border border-white/10 bg-[#070d18] px-2.5 py-2 text-[11px] leading-relaxed text-slate-300 line-clamp-3">
                         {preview}
                       </p>
                     </div>
 
                     <ArrowUpRight
                       className={cn(
-                        'mt-1 h-4 w-4 shrink-0 text-muted-foreground opacity-0 transition-opacity',
-                        'group-hover:opacity-100 group-focus:opacity-100 group-data-[highlighted]:opacity-100'
+                        'mt-1 h-4 w-4 shrink-0 text-slate-500 transition-opacity',
+                        'opacity-0 group-hover:opacity-100 group-focus:opacity-100 group-data-[highlighted]:opacity-100'
                       )}
                     />
                   </DropdownMenu.Item>
@@ -213,7 +216,7 @@ export function WhatsAppMenu({
               })}
             </div>
 
-            <div className="border-t border-white/[0.06] px-3.5 py-2 text-[11px] text-muted-foreground">
+            <div className="border-t border-white/10 bg-[#0f1729] px-4 py-2.5 text-[11px] leading-relaxed text-slate-500">
               Fluxo sugerido: saudação → aguarde resposta → pitch → follow-up
             </div>
           </DropdownMenu.Content>

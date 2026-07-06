@@ -1,6 +1,6 @@
 ﻿import { Lead } from '@/types';
-import { getDefaultWhatsAppMessage, getTimeGreeting } from '@/lib/utils';
-import { getDigitalPresence, hasProfessionalWebsite } from '@/lib/lead-presence';
+import { getTimeGreeting } from '@/lib/utils';
+import { buildPitchMessage } from '@/lib/pitch-message';
 
 export type WhatsAppMessageType = 'saudacao' | 'pitch' | 'followup';
 
@@ -14,12 +14,12 @@ export const WHATSAPP_MESSAGE_OPTIONS: WhatsAppMessageOption[] = [
   {
     id: 'saudacao',
     label: 'Saudação',
-    description: 'Oi, tudo bem?',
+    description: 'Olá! Tudo bem?',
   },
   {
     id: 'pitch',
     label: 'Pitch',
-    description: 'Elogio + oferta de serviço',
+    description: 'Elogio + proposta de site personalizado',
   },
   {
     id: 'followup',
@@ -33,52 +33,7 @@ function buildPitchFromLead(lead: Lead): string {
     return lead.mensagemProspeccao.trim();
   }
 
-  const issues: string[] = [];
-  const hasPhone = !!lead.telefone?.trim();
-  const presence = getDigitalPresence(lead);
-
-  if (presence === 'none') {
-    if (hasPhone) {
-      issues.push('não possui site profissional — o contato parece ser apenas por telefone/WhatsApp');
-    } else {
-      issues.push('sua empresa ainda não possui um site profissional');
-    }
-  } else if (presence === 'instagram') {
-    issues.push('usa apenas o Instagram como presença online, sem um site profissional');
-  } else if (presence === 'whatsapp') {
-    issues.push('usa apenas link de WhatsApp no Google Meu Negócio, sem site profissional');
-  } else if (presence === 'social') {
-    issues.push('usa apenas rede social como presença online, sem site profissional');
-  } else if (
-    lead.websiteAnalysis?.siteStatus === 'Offline' ||
-    lead.websiteAnalysis?.siteStatus === 'Timeout'
-  ) {
-    issues.push('o site da sua empresa está fora do ar');
-  } else if (hasProfessionalWebsite(lead)) {
-    if (!lead.websiteAnalysis?.hasHttps) {
-      issues.push('o site não utiliza conexão segura (HTTPS)');
-    }
-    if (!lead.websiteAnalysis?.isResponsive) {
-      issues.push('o site não está otimizado para celular');
-    }
-    if (!lead.websiteAnalysis?.hasWhatsapp) {
-      issues.push('não há integração com WhatsApp no site para facilitar o contato');
-    }
-    if (!lead.websiteAnalysis?.hasForm) {
-      issues.push('não há formulário de contato no site');
-    }
-  }
-
-  const issueText =
-    issues.length > 0
-      ? `Analisei a presença digital da ${lead.empresa} e percebi que ${issues.slice(0, 2).join(' e ')}.`
-      : `Analisei a presença digital da ${lead.empresa} e percebi que existem algumas oportunidades para aumentar a visibilidade online e facilitar o contato com novos clientes.`;
-
-  return `${issueText}
-
-Trabalho com desenvolvimento de landing pages profissionais, sites institucionais e otimização do Google Meu Negócio.
-
-Posso lhe mostrar algumas sugestões sem compromisso?`;
+  return buildPitchMessage(lead.categoria);
 }
 
 function buildFollowUpMessage(): string {
@@ -91,11 +46,11 @@ export function buildWhatsAppMessage(
 ): string {
   switch (type) {
     case 'saudacao':
-      return getDefaultWhatsAppMessage();
+      return 'Olá! Tudo bem?';
     case 'pitch':
       if (options?.pitchOverride?.trim()) return options.pitchOverride.trim();
       if (options?.lead) return buildPitchFromLead(options.lead);
-      return 'Gostaria de conversar sobre como melhorar a presença digital da sua empresa. Posso lhe mostrar algumas sugestões sem compromisso?';
+      return buildPitchMessage('');
     case 'followup':
       return buildFollowUpMessage();
   }
@@ -106,7 +61,7 @@ export function getWhatsAppMessagePreview(type: WhatsAppMessageType): string {
     lead: {
       id: '',
       empresa: 'sua empresa',
-      categoria: '',
+      categoria: 'Nutricionista',
       endereco: '',
       cidade: '',
       estado: '',

@@ -1,5 +1,6 @@
 ﻿import { Lead, Prioridade } from '../types/index.js';
 import { calculateScore } from '../utils/score.js';
+import { buildPitchMessage } from '../utils/pitch-message.js';
 import { getDigitalPresence, isInstagramOnlyLead, resolveSiteStatusForScoring } from './lead-presence.js';
 
 export type CityTier = 'TIER_1' | 'TIER_2' | 'TIER_3';
@@ -205,60 +206,7 @@ function getSiteIssues(lead: Lead): string[] {
 }
 
 export function generateStrategyMessage(lead: Lead): string {
-  const siteScore = lead.siteScore ?? lead.score ?? calculateSiteScoreFromLead(lead);
-  const profile = buildStrategyProfile({
-    cidade: lead.cidade,
-    categoria: lead.categoria,
-    siteScore,
-    seed: lead.id || lead.empresa,
-  });
-  const messageVariant = lead.messageVariant ?? profile.messageVariant;
-  const issues = getSiteIssues(lead);
-  const issueText =
-    issues.length > 0
-      ? issues.slice(0, 2).join(' e ')
-      : 'há espaço para melhorar a presença digital e atrair mais clientes';
-
-  const empresa = lead.empresa;
-  const categoria = lead.categoria;
-
-  switch (messageVariant) {
-    case 'direct_google_focus':
-      return `Vi o perfil da ${empresa} e percebi que ${issueText}.
-
-Isso acaba limitando a visibilidade no Google e a captação de novos pacientes/clientes.
-
-Trabalho com sites e landing pages focados em aparecer nas buscas e gerar contatos. Posso te mostrar uma sugestão rápida, sem compromisso?`;
-
-    case 'direct_lead_generation':
-      return `Analisei a presença digital da ${empresa} e notei que ${issueText}.
-
-Muitos negócios de ${categoria} perdem oportunidades por não ter um canal claro de captação online.
-
-Desenvolvo sites e páginas pensadas para transformar visitas em contatos. Topa ver uma ideia aplicada ao seu caso?`;
-
-    case 'indirect_value_focus':
-      return `Acompanho o mercado de ${categoria} e o perfil da ${empresa} chamou minha atenção.
-
-Percebi que ${issueText}, o que pode impactar como o público percebe o valor do serviço.
-
-Ajudo empresas a transmitirem mais profissionalismo online. Se fizer sentido, posso compartilhar um insight específico para vocês.`;
-
-    case 'indirect_positioning':
-      return `Vi o trabalho da ${empresa} e achei interessante o posicionamento no segmento de ${categoria}.
-
-Uma observação: ${issueText}. Pequenos ajustes digitais costumam mudar bastante a percepção de quem pesquisa antes de contratar.
-
-Se quiser, posso te mandar uma sugestão leve de melhoria — sem compromisso.`;
-
-    case 'authority_social_proof':
-    default:
-      return `Trabalho com presença digital para negócios de ${categoria} e observei o perfil da ${empresa}.
-
-No mercado atual, empresas que investem em site profissional e Google Meu Negócio costumam se destacar na região.
-
-Notei que ${issueText}. Se em algum momento quiser conversar sobre isso, fico à disposição.`;
-  }
+  return buildPitchMessage(lead.categoria);
 }
 
 export function enrichLeadStrategy(lead: Lead): Lead {
