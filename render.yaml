@@ -1,4 +1,4 @@
-services:
+﻿services:
   - type: web
     name: leadhunter-api
     runtime: node
@@ -11,6 +11,8 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: NODE_OPTIONS
+        value: --max-old-space-size=460
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_SECRET_KEY
