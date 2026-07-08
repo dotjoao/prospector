@@ -28,14 +28,6 @@ export const WHATSAPP_MESSAGE_OPTIONS: WhatsAppMessageOption[] = [
   },
 ];
 
-function buildPitchFromLead(lead: Lead): string {
-  if (lead.mensagemProspeccao?.trim()) {
-    return lead.mensagemProspeccao.trim();
-  }
-
-  return buildPitchMessage({ categoria: lead.categoria, cidade: lead.cidade });
-}
-
 function buildFollowUpMessage(): string {
   return `${getTimeGreeting()}, tudo bem? Passando para saber se conseguiu ver minha mensagem anterior. Fico à disposição para conversarmos!`;
 }
@@ -49,7 +41,12 @@ export function buildWhatsAppMessage(
       return 'Olá! Tudo bem?';
     case 'pitch':
       if (options?.pitchOverride?.trim()) return options.pitchOverride.trim();
-      if (options?.lead) return buildPitchFromLead(options.lead);
+      if (options?.lead) {
+        return buildPitchMessage({
+          categoria: options.lead.categoria,
+          cidade: options.lead.cidade,
+        });
+      }
       return buildPitchMessage({ categoria: '', cidade: '' });
     case 'followup':
       return buildFollowUpMessage();

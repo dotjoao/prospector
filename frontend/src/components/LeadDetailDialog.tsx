@@ -51,6 +51,7 @@ import {
   hasProfessionalWebsite,
   normalizeInstagramUrl,
 } from '@/lib/lead-presence';
+import { buildPitchMessage } from '@/lib/pitch-message';
 
 interface LeadDetailDialogProps {
   lead: Lead | null;
@@ -106,7 +107,7 @@ export function LeadDetailDialog({ lead, open, onOpenChange, onUpdate }: LeadDet
     setUltimoContato(lead.ultimoContato?.split('T')[0] || '');
     setProximoFollowUp(lead.proximoFollowUp?.split('T')[0] || '');
     setObservacoes(lead.observacoes || '');
-    setMensagem(lead.mensagemProspeccao || '');
+    setMensagem(buildPitchMessage({ categoria: lead.categoria, cidade: lead.cidade }));
     setSaveSuccess(false);
     setLoadingDetail(true);
 
@@ -119,7 +120,7 @@ export function LeadDetailDialog({ lead, open, onOpenChange, onUpdate }: LeadDet
           setUltimoContato(full.ultimoContato?.split('T')[0] || '');
           setProximoFollowUp(full.proximoFollowUp?.split('T')[0] || '');
           setObservacoes(full.observacoes || '');
-          setMensagem(full.mensagemProspeccao || '');
+          setMensagem(buildPitchMessage({ categoria: full.categoria, cidade: full.cidade }));
         }
       })
       .catch(() => {

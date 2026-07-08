@@ -8,7 +8,7 @@ import { Lead, LeadStatus } from '@/types';
 import { cn } from '@/lib/utils';
 
 interface InstagramButtonProps {
-  lead: Pick<Lead, 'website' | 'websiteAnalysis' | 'categoria' | 'cidade' | 'id' | 'status' | 'mensagemProspeccao'>;
+  lead: Pick<Lead, 'website' | 'websiteAnalysis' | 'categoria' | 'cidade' | 'id' | 'status'>;
   pitchMessage?: string;
   size?: 'sm' | 'md';
   showLabel?: boolean;
@@ -44,7 +44,6 @@ export function InstagramButton({
   async function handleOpen() {
     const message =
       pitchMessage?.trim() ||
-      lead.mensagemProspeccao?.trim() ||
       buildPitchMessage({ categoria: lead.categoria, cidade: lead.cidade });
 
     setSending(true);

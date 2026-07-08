@@ -67,10 +67,41 @@ function getHelpTarget(categoria: string): string {
   return getProfessionPlural(categoria);
 }
 
+export function getProfessionSingularForSearch(categoria: string): string {
+  const cat = normalizeCategory(categoria);
+
+  const mappings: [RegExp, string][] = [
+    [/nutri/, 'nutricionista'],
+    [/advogad|juridic/, 'advogado'],
+    [/dentist|odontolog/, 'dentista'],
+    [/medic/, 'médico'],
+    [/psico/, 'psicólogo'],
+    [/fisio/, 'fisioterapeuta'],
+    [/veterin/, 'veterinário'],
+    [/fonoaud/, 'fonoaudiólogo'],
+    [/enferm/, 'enfermeiro'],
+    [/contador|contabil/, 'contador'],
+    [/arquitet/, 'arquiteto'],
+    [/personal trainer|personal/, 'personal trainer'],
+    [/estetic/, 'profissional de estética'],
+    [/restaurante|lanchonete|pizzaria/, 'restaurante'],
+    [/salao|cabeleireir|barbearia/, 'salão de beleza'],
+    [/imobiliar|corretor/, 'corretor de imóveis'],
+    [/professor|escola|curso/, 'professor'],
+  ];
+
+  for (const [pattern, label] of mappings) {
+    if (pattern.test(cat)) return label;
+  }
+
+  const trimmed = categoria.trim().toLowerCase();
+  return trimmed || 'seu serviço';
+}
+
 export function getSearchExample(categoria: string, cidade: string): string {
-  const cat = categoria.trim().toLowerCase() || 'seu serviço';
+  const profession = getProfessionSingularForSearch(categoria);
   const city = cidade.trim() || 'sua cidade';
-  return `${cat} em ${city}`;
+  return `${profession} em ${city}`;
 }
 
 export function buildPitchMessage(context: PitchContext, date: Date = new Date()): string {
