@@ -1,4 +1,6 @@
-﻿function normalizeCategory(categoria: string): string {
+﻿import { getTimeGreeting } from '@/lib/utils';
+
+function normalizeCategory(categoria: string): string {
   return categoria
     .toLowerCase()
     .normalize('NFD')
@@ -12,6 +14,11 @@ const EDUCATION_PATTERN =
   /professor|escola|curso|ensino|educacao|coaching|coach|tutor|idioma|faculdade|universidade|creche|bercario/;
 
 const HOSPITALITY_PATTERN = /hotel|pousada|hostel|resort|hospedagem/;
+
+export interface PitchContext {
+  categoria: string;
+  cidade: string;
+}
 
 export function getAudienceTerm(categoria: string): string {
   const cat = normalizeCategory(categoria);
@@ -54,32 +61,29 @@ export function getProfessionPlural(categoria: string): string {
   return trimmed.toLowerCase();
 }
 
-function getPraiseLine(categoria: string, audience: string): string {
+function getHelpTarget(categoria: string): string {
   const cat = normalizeCategory(categoria);
-
-  if (/advogad|juridic/.test(cat)) {
-    return `Vi seu trabalho e gostei bastante da forma como você conduz sua advocacia. Dá para perceber o comprometimento com seus ${audience} e a preocupação em entregar um serviço de qualidade.`;
-  }
-
-  if (HEALTH_PATTERN.test(cat)) {
-    return `Vi seu trabalho e gostei bastante da forma como você conduz seu atendimento. Dá para perceber o comprometimento com seus ${audience} e a preocupação em entregar um acompanhamento de qualidade.`;
-  }
-
-  if (EDUCATION_PATTERN.test(cat)) {
-    return `Vi seu trabalho e gostei bastante da forma como você conduz suas aulas. Dá para perceber o comprometimento com seus ${audience} e a preocupação em entregar um ensino de qualidade.`;
-  }
-
-  return `Vi seu trabalho e gostei bastante da forma como você conduz seu atendimento. Dá para perceber o comprometimento com seus ${audience} e a preocupação em entregar um serviço de qualidade.`;
+  if (HEALTH_PATTERN.test(cat)) return 'profissionais da saúde';
+  return getProfessionPlural(categoria);
 }
 
-export function buildPitchMessage(categoria: string): string {
-  const audience = getAudienceTerm(categoria);
-  const profession = getProfessionPlural(categoria);
-  const praise = getPraiseLine(categoria, audience);
+export function getSearchExample(categoria: string, cidade: string): string {
+  const cat = categoria.trim().toLowerCase() || 'seu serviço';
+  const city = cidade.trim() || 'sua cidade';
+  return `${cat} em ${city}`;
+}
 
-  return `${praise}
+export function buildPitchMessage(context: PitchContext, date: Date = new Date()): string {
+  const greeting = getTimeGreeting(date);
+  const audience = getAudienceTerm(context.categoria);
+  const searchExample = getSearchExample(context.categoria, context.cidade);
+  const helpTarget = getHelpTarget(context.categoria);
 
-Trabalho desenvolvendo sites personalizados para ${profession} e acredito que um site profissional pode reforçar ainda mais a sua autoridade e facilitar para que novos ${audience} conheçam seu trabalho.
+  return `${greeting}! Tudo bem?
 
-Posso te mostrar uma ideia rápida?`;
+Me chamo João, sou desenvolvedor de sites. Encontrei seu perfil enquanto pesquisava por profissionais da sua área e gostei muito do seu trabalho. Dá para perceber o cuidado que você tem com seus ${audience} e a forma profissional como conduz seu atendimento.
+
+Hoje ajudo ${helpTarget} a terem um site próprio, que além de transmitir mais confiança, facilita que novos ${audience} encontrem seu trabalho quando pesquisam no Google, por exemplo: "${searchExample}" ou pelo serviço que você oferece na sua região.
+
+Acredito que isso faria bastante sentido para o seu trabalho. Posso te mostrar uma ideia rápida?`;
 }

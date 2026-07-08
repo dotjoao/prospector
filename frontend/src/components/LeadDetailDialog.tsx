@@ -311,7 +311,31 @@ export function LeadDetailDialog({ lead, open, onOpenChange, onUpdate }: LeadDet
                     }}
                   />
                 )}
-                <InstagramButton lead={activeLead} size="md" />
+                <InstagramButton
+                  lead={activeLead}
+                  pitchMessage={mensagem}
+                  size="md"
+                  onMessageSent={() => {
+                    const today = new Date().toISOString().split('T')[0];
+                    const advanced: LeadStatus[] = [
+                      'Interessado',
+                      'Proposta Enviada',
+                      'Fechado',
+                      'Perdido',
+                    ];
+                    const nextStatus: LeadStatus = advanced.includes(status)
+                      ? status
+                      : 'Mensagem Enviada';
+                    setStatus(nextStatus);
+                    setUltimoContato(today);
+                    setDisplayLead((current) =>
+                      current
+                        ? { ...current, status: nextStatus, ultimoContato: today }
+                        : current
+                    );
+                    onUpdate();
+                  }}
+                />
               </div>
 
               {analysis && (

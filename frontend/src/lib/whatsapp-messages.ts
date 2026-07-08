@@ -19,7 +19,7 @@ export const WHATSAPP_MESSAGE_OPTIONS: WhatsAppMessageOption[] = [
   {
     id: 'pitch',
     label: 'Pitch',
-    description: 'Elogio + proposta de site personalizado',
+    description: 'Apresentação completa com proposta de site',
   },
   {
     id: 'followup',
@@ -33,7 +33,7 @@ function buildPitchFromLead(lead: Lead): string {
     return lead.mensagemProspeccao.trim();
   }
 
-  return buildPitchMessage(lead.categoria);
+  return buildPitchMessage({ categoria: lead.categoria, cidade: lead.cidade });
 }
 
 function buildFollowUpMessage(): string {
@@ -50,7 +50,7 @@ export function buildWhatsAppMessage(
     case 'pitch':
       if (options?.pitchOverride?.trim()) return options.pitchOverride.trim();
       if (options?.lead) return buildPitchFromLead(options.lead);
-      return buildPitchMessage('');
+      return buildPitchMessage({ categoria: '', cidade: '' });
     case 'followup':
       return buildFollowUpMessage();
   }
@@ -63,7 +63,7 @@ export function getWhatsAppMessagePreview(type: WhatsAppMessageType): string {
       empresa: 'sua empresa',
       categoria: 'Nutricionista',
       endereco: '',
-      cidade: '',
+      cidade: 'Joinville',
       estado: '',
       telefone: '',
       website: '',

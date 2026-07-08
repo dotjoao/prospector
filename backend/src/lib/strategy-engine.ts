@@ -206,7 +206,7 @@ function getSiteIssues(lead: Lead): string[] {
 }
 
 export function generateStrategyMessage(lead: Lead): string {
-  return buildPitchMessage(lead.categoria);
+  return buildPitchMessage({ categoria: lead.categoria, cidade: lead.cidade });
 }
 
 export function enrichLeadStrategy(lead: Lead): Lead {

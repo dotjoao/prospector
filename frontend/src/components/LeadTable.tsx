@@ -193,12 +193,12 @@ export function LeadTable({
                             lead={lead}
                             onMessageSent={onRefresh}
                           />
-                          <InstagramButton lead={lead} />
+                          <InstagramButton lead={lead} onMessageSent={onRefresh} />
                         </span>
                       ) : (
                         <span onClick={(e) => e.stopPropagation()} className="flex items-center gap-1">
                           <span>Sem telefone</span>
-                          <InstagramButton lead={lead} />
+                          <InstagramButton lead={lead} onMessageSent={onRefresh} />
                         </span>
                       )}
                     </div>
